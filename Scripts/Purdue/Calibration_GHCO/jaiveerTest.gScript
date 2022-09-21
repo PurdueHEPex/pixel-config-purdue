@@ -1,0 +1,74 @@
+VERSION v2.1
+
+######## Cameron's Request ########
+
+HOME
+LoadConfig
+
+#I'm only making this choice since it's in the DualROC script
+SETERRORMODE prompt
+
+COPY $card_tl_approx {111.517,523.762,99.772}
+
+#Step 1: Check if card is correctly positioned
+@Step_1 PASS
+CHOICEPOPUP $choice "Is the card aligned and in-place for surveying?"
+GOTOIFN @Step_1 $choice
+MOVESAFE $card_tl_approx 100
+
+#Step 2: Survey TL corner
+@Step_2 PASS
+###MOVESAFE $card_tl_approx 30
+CHOICEPOPUP $choice "Ready to survey top-left corner?"
+GOTOIFN @Step_1 $choice
+CHOICEPOPUP $choice "Center the gantry on the top-left corner, then CLOSE the window." "Okay" "Wait, what's going on?"
+GOTOIFN @Step_2 $choice
+VIDEO
+CHOICEPOPUP $choice "Are you satisfied with this point for the top-left corner?"
+GOTOIFN @Step_2 $choice
+GETPOS $card_tl
+MOVEREL {3,0,0} 30
+
+#Step 3: Survey TR corner
+@Step_3 PASS
+CHOICEPOPUP $choice "Ready to survey top-right corner?"
+GOTOIFN @Step_3 $choice
+VIDEO
+CHOICEPOPUP $choice "Are you satisfied with this point for the top-right corner?"
+GOTOIFN @Step_3 $choice
+GETPOS $card_tr
+MOVEREL {0,5,0} 30
+
+#Step 4: Survey BR corner
+@Step_4 PASS
+CHOICEPOPUP $choice "Ready to survey bottom-right corner?"
+GOTOIFN @Step_4 $choice
+VIDEO
+CHOICEPOPUP $choice "Are you satisfied with this point for the bottom-right corner?"
+GOTOIFN @Step_4 $choice
+GETPOS $card_br
+MOVEREL {-3,0,0} 30
+
+
+#Step 5: Survey BL corner
+@Step_5 PASS
+CHOICEPOPUP $choice "Ready to survey bottom-left corner?"
+GOTOIFN @Step_5 $choice
+VIDEO
+CHOICEPOPUP $choice "Are you satisfied with this point for the bottom-left corner?"
+GOTOIFN @Step_5 $choice
+GETPOS $card_bl
+
+#Step 6: Calculate center position
+@Step_6 PASS
+ADD $sum2 $card_tl $card_tr
+ADD $sum3 $sum2 $card_br
+ADD $sum4 $sum3 $card_bl
+MUL $card_center $sum4 {0.25,0.25,0.25}
+
+PRINT "Center coordinates: %v" $card_center
+
+CHOICEPOPUP $choice "Read the center coordinates in the terminal. Are you ready to end?"
+GOTOIFN @Step_1 $choice
+HOME
+END
