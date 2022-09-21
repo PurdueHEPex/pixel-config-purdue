@@ -1,0 +1,3 @@
+[submodule "Scripts/TFPXModules"]
+	path = Scripts/TFPXModules
+	url = https://github.com/souvik1982/gscript-TFPXModules.git
