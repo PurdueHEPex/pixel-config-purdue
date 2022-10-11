@@ -149,7 +149,8 @@ geometry.TFPX_CROC_DUALROC.fid_tr: {0,-0,0}
 geometry.TFPX_CROC_DUALROC.fid_br: {0,0,0}
 geometry.TFPX_CROC_DUALROC.fid_bl: {-0,0,0}
 geometry.TFPX_CROC_DUALROC.fid_tl: {-0,-0,0}
-geometry.TFPX_CROC_DUALROC.thickness: 0.485
+#geometry.TFPX_CROC_DUALROC.thickness: 0.485
+geometry.TFPX_CROC_DUALROC.thickness: 0.808
 
 
 geometry.TFPX_GHCOPIECE.fid_tr: {7.978,-10.975,0}
@@ -157,8 +158,7 @@ geometry.TFPX_GHCOPIECE.fid_br: {7.978,10.975,0}
 geometry.TFPX_GHCOPIECE.fid_bl: {-7.978,10.975,0}
 geometry.TFPX_GHCOPIECE.fid_tl: {-7.978,-10.975,0}
 
-geometry.picker_tool.center_offset: {0,0,55.4} #tiny suction cup (55.5)
-geometry.PICKER_TOOL.center_offset: {0,0,55.4} #tiny suction cup (55.5)
+geometry.PICKER_TOOL.center_offset: {0,0,55.2} #tiny suction cup (55.5)
 #geometry.PICKER_TOOL.center_offset: {0,0,56.86} #small suction cup
 #geometry.PICKER_TOOL.center_offset: {0,0,59.5} #middle suction cup
 #geometry.PICKER_TOOL.center_offset: {0,0,58} #middle suction cup -1000um
@@ -223,8 +223,8 @@ siteGeometry.pos_croc_BOTGlass_top1: {111.064,552.390,99.737}
 siteGeometry.dist_multiGlass_bondpads: 19.698 #mm
 
 ### Information for the CROC Dual ROC Script
-siteGeometry.pos_croc_TOPROC_top1: {111.897,522.777,99.607}
-siteGeometry.pos_croc_BOTROC_top1: {111.425,552.308,99.627}
+siteGeometry.pos_croc_TOPROC_top1: {111.897,522.777,99.282}
+siteGeometry.pos_croc_BOTROC_top1: {111.425,552.308,99.282}
 siteGeometry.dist_dualROC_bondpads: 21.064 #mm
   # Vector from center of the bond pads on one Dual ROC to its center
 siteGeometry.dualROC_bondsToCenter: {9.228,0,0}
@@ -268,6 +268,8 @@ siteGeometry.delta_1x2t_bot: {2,0,0}
 #================================================
 
 vision.debug_enable: False
+vision.autofocus.step_size: 0.02 # mm
+vision.autofocus.delay: 300 # ms
 
 vision.FPIX_HDI.method: find_patches
 vision.FPIX_HDI.shrinkFactor: 4
