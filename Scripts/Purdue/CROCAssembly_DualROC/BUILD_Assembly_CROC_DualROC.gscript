@@ -44,14 +44,13 @@ FLEXREAD $thickness_dualROC geometry.TFPX_CROC_DUALROC.thickness
 # Thermal Mockup dimensions
 FLEXREAD $dualROC_bondsToCenter siteGeometry.dualROC_bondsToCenter
 
-# Pull from DualROC specific data file
-LOADCONFIG siteGeometry Config\Assembly_CROC_DualROC_data.txt
-FLEXREAD $dist_hdi_bondpads siteGeometry.dist_hdi_bondpads
-FLEXREAD $dist_dualROC_bondpads siteGeometry.dist_dualROC_bondpads
+# Bondpad lengths
+FLEXREAD $dist_hdi_bondpads geometry.dist_dualHDI_bondpads
+FLEXREAD $dist_dualROC_bondpads geometry.dist_dualROC_bondpads
+
+#Statistical Offsets
 FLEXREAD $delta_TOPROC siteGeometry.delta_TOPROC
 FLEXREAD $delta_BOTROC siteGeometry.delta_BOTROC
-FLEXREAD $pos_croc_TOPROC_top1 siteGeometry.pos_croc_TOPROC_top1
-FLEXREAD $pos_croc_BOTROC_top1 siteGeometry.pos_croc_BOTROC_top1
 
 # Rotate by 90 degrees for pickup and placement
 COPY $rotate_tool 90
@@ -61,42 +60,17 @@ COPY $rotate_tool 90
 
 # Step 1. Prompt what station the assembly will occur at and take in those values
 @STEP_ONE GETINTPOPUP $station "Provide the Chuck number (0-3)"
-GOTOIFN @STATION_0 $station
-GOTOIF @STATION_1 `$station==1`
-GOTOIF @STATION_2 `$station==2`
-GOTOIF @STATION_3 `$station==3`
-CHOICEPOPUP $trash "You gave me a bad number >:(" "Sorry" "My bad"
+GOTOIF @DISPLAY_ERROR `$station<0`
+GOTOIF @DISPLAY_ERROR `$station>3`
+GOTO @FLEXREADING
+@DISPLAY_ERROR CHOICEPOPUP $trash "You gave me a bad number >:(" "Sorry" "My bad"
 GOTO @STEP_ONE
 
-  # Station 0
-@STATION_0 FLEXREAD $croc_v_translation siteGeometry.croc_v_translation_STAT_0
-FLEXREAD $croc_rot_translation siteGeometry.croc_rot_translation_STAT_0
-SETVAC croc_chuck_0_top 0
-SETVAC croc_chuck_0_bot 0
-GOTO @ENDFLEXREADING
-
-  # Station 1
-@STATION_1 FLEXREAD $croc_v_translation siteGeometry.croc_v_translation_STAT_1
-FLEXREAD $croc_rot_translation siteGeometry.croc_rot_translation_STAT_1
-SETVAC croc_chuck_1_top 0
-SETVAC croc_chuck_1_bot 0
-GOTO @ENDFLEXREADING
-
- # Station 2
-@STATION_2 FLEXREAD $croc_v_translation siteGeometry.croc_v_translation_STAT_2
-FLEXREAD $croc_rot_translation siteGeometry.croc_rot_translation_STAT_2
-SETVAC croc_chuck_2_top 0
-SETVAC croc_chuck_2_bot 0
-GOTO @ENDFLEXREADING
-
-  #Station 3
-@STATION_3 FLEXREAD $croc_v_translation siteGeometry.croc_v_translation_STAT_3
-FLEXREAD $croc_rot_translation siteGeometry.croc_rot_translation_STAT_3
-SETVAC croc_chuck_3_top 0
-SETVAC croc_chuck_3_bot 0
-
-@ENDFLEXREADING PASS
-LOADCONFIG
+@FLEXREADING PASS
+FLEXREAD $croc_v_translation "siteGeometry.croc_v_translation_STAT_{$station}"
+FLEXREAD $croc_rot_translation "siteGeometry.croc_rot_translation_STAT_{$station}"
+SETVAC "croc_chuck_{$station}_top" 0
+SETVAC "croc_chuck_{$station}_bot" 0
 ADD $croc_v_translation.z $croc_v_translation.z $thickness_crocHDI
 SUB $croc_v_translation.z $croc_v_translation.z $thickness_dualROC
 

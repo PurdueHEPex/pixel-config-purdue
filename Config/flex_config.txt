@@ -145,12 +145,10 @@ geometry.TFPX_CROC_SINGLEGLASS.thickness: 0.500
 
 geometry.TFPX_CROC_HDI.thickness: 0.290
 
-geometry.TFPX_CROC_DUALROC.fid_tr: {0,-0,0}
-geometry.TFPX_CROC_DUALROC.fid_br: {0,0,0}
-geometry.TFPX_CROC_DUALROC.fid_bl: {-0,0,0}
-geometry.TFPX_CROC_DUALROC.fid_tl: {-0,-0,0}
 #geometry.TFPX_CROC_DUALROC.thickness: 0.485
 geometry.TFPX_CROC_DUALROC.thickness: 0.808
+geometry.dist_dualHDI_bondpads: 21.216 #mm
+geometry.dist_dualROC_bondpads: 21.064 #mm
 
 
 geometry.TFPX_GHCOPIECE.fid_tr: {7.978,-10.975,0}
@@ -222,12 +220,19 @@ siteGeometry.pos_croc_TOPGlass_top1: {111.517,523.762,99.772}
 siteGeometry.pos_croc_BOTGlass_top1: {111.064,552.390,99.737}
 siteGeometry.dist_multiGlass_bondpads: 19.698 #mm
 
+
 ### Information for the CROC Dual ROC Script
 siteGeometry.pos_croc_TOPROC_top1: {111.897,522.777,99.282}
 siteGeometry.pos_croc_BOTROC_top1: {111.425,552.308,99.282}
-siteGeometry.dist_dualROC_bondpads: 21.064 #mm
+siteGeometry.delta_TOPROC: {0,0,0}
+siteGeometry.delta_BOTROC: {0,0,0}
+  #Station 0
+siteGeometry.croc_v_translation_STAT_0: {-100.253,0.0368431,-6.478}
+siteGeometry.croc_rot_translation_STAT_0: 0.1617344
+
   # Vector from center of the bond pads on one Dual ROC to its center
 siteGeometry.dualROC_bondsToCenter: {9.228,0,0}
+
 
 
  # HDI pick and place translation vector and rotation angle

@@ -14,10 +14,8 @@ HOME
 #Load Variables needed from Flex Config
 LOADCONFIG
 FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
-
-LOADCONFIG siteGeometry Config\Assembly_CROC_DualROC_data.txt
-FLEXREAD $dist_hdi_bondpads siteGeometry.dist_hdi_bondpads
-FLEXREAD $dist_dualROC_bondpads siteGeometry.dist_dualROC_bondpads
+FLEXREAD $dist_hdi_bondpads geometry.dist_dualHDI_bondpads
+FLEXREAD $dist_dualROC_bondpads geometry.dist_dualROC_bondpads
 
 #Load info from the correct BUILD output text file
 @CHUCKQUESTION GETINTPOPUP $station "Which station are you surveying? (0-3)"
