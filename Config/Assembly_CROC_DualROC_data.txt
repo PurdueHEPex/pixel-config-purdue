@@ -1,8 +1,0 @@
-siteGeometry.dist_hdi_bondpads: 21.216 #mm
-siteGeometry.dist_dualROC_bondpads: 21.0641 #mm
-
-siteGeometry.delta_TOPROC: {0,0,0}
-siteGeometry.delta_BOTROC: {0,0,0}
-
-siteGeometry.croc_v_translation_STAT_0: {-100.253,0.0368431,-6.478}
-siteGeometry.croc_rot_translation_STAT_0: 0.1617344
