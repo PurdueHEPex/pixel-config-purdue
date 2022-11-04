@@ -18,21 +18,11 @@ FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
 FLEXREAD $dist_singleGlass_bondpads siteGeometry.dist_singleGlass_bondpads
 
 #Load info from the correct BUILD output text file
-GETINTPOPUP $station "Which station are you surveying? (0-3)"
-GOTOIFN @STATION_0 $station
-GOTOIF @STATION_1 `$station==1`
-GOTOIF @STATION_2 `$station==2`
-GOTOIF @STATION_3 `$station==3`
+@CHUCKQUESTION GETINTPOPUP $station "Which station are you surveying? (0-3)"
+GOTOIF @CHUCKQUESTION `$station<0`
+GOTOIF @CHUCKQUESTION `$station>3`
 
-@STATION_0 LOADCONFIG single Logs\CROC_SingleGlass_output_station_0.txt
-GOTO @FLEXREADING
-@STATION_1 LOADCONFIG single Logs\CROC_SingleGlass_output_station_1.txt
-GOTO @FLEXREADING
-@STATION_2 LOADCONFIG single Logs\CROC_SingleGlass_output_station_2.txt
-GOTO @FLEXREADING
-@STATION_3 LOADCONFIG single Logs\CROC_SingleGlass_output_station_3.txt
-
-@FLEXREADING PASS
+LOADCONFIG single "Logs\CROC_SingleGlass_output_station_{$station}.txt"
 FLEXREAD $pos_glass_bond_center single.pos_glass_bond_center
 FLEXREAD $pos_hdi_final single.pos_hdi_final
 FLEXREAD $rot_hdi_final single.rot_hdi_final
@@ -40,8 +30,8 @@ FLEXREAD $rot_hdi_final single.rot_hdi_final
 
 ## Continuing the script ##
 # Step 12. Prompt replacement of Vacuum Tool to its original position
-@STEP_TWELVE SETVAC croc_hdipicker 0
-CHOICEPOPUP $choice "Did you place the Vacuum Tool on Chuck 4?" "Yes, continue" "No, ask me again"
+@STEP_TWELVE SETVAC "croc_weight_{$station}" 0
+CHOICEPOPUP $choice "Did you place the Vacuum Tool on the LaunchHDI Chuck?" "Yes, continue" "No, ask me again"
 GOTOIFN @STEP_TWELVE $choice
 
 
@@ -90,12 +80,12 @@ GOTOIF @STEP_END $choice
 
 SETVAC gantry_head_inner 0
 SETVAC gantry_head_outer 0
-SETVAC croc_chuck_1_top 0
-SETVAC croc_chuck_1_bot 0
-SETVAC croc_chuck_2_top 0
-SETVAC croc_chuck_2_bot 0
-SETVAC croc_chuck_3 0
-SETVAC croc_hdipicker 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETVAC croc_launchHDI 0
+SETVAC "croc_chuck_{$station}_bot" 0
+SETVAC "croc_chuck_{$station}_top" 0
+SETVAC "croc_weight_{$station}" 0
 SETVAC gelpak_release 0
 
 @STEP_END HOME
@@ -142,7 +132,7 @@ END
   CALL @SURVEYCORNERS $bot_bond1 -> $bot_bond1
 
   COPY $bot_bond2 $bot_bond1
-  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the bottom bond pad?" "Yes" "No"
   GOTOIFN @FIND_3 $choice
   CALL @SURVEYCORNERS $bot_bond2 -> $bot_bond2
 
