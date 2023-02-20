@@ -1,5 +1,5 @@
 VERSION v2.1
-######################## BUILD CROC Assembly Dual ROC #############################
+######################## BUILD CROC Assembly Sensor ROC #############################
 # Steps:
 # 1. Prompt what station the assembly will occur at
 # 2. Prompt placement of HDI and turn on the HDI's vacuum
@@ -26,34 +26,33 @@ SETVAC gantry_head_outer 0
 SETVAC croc_launchROC_top 0
 SETVAC croc_launchROC_bot 0
 SETVAC croc_launchHDI 0
-SETLOG "LOG_SPLIT_Assembly_CROC_DualROC_DataGeneration.txt"
+SETLOG "LOG_SPLIT_Assembly_CROC_SensorROC_DataGeneration.txt"
 SETERRORMODE prompt
 
 #Rough position of the top bond pad on the CROC HDI (LaunchHDI)
 FLEXREAD $pos_croc_hdi_top1 siteGeometry.pos_croc_hdi_top1
-FLEXREAD $pos_croc_hdi_top2 siteGeometry.pos_croc_hdi_top2
 
-#Rough Positions of the top right corner of the two ROCs (LaunchROC)
-FLEXREAD $pos_croc_TOPROC_top1 siteGeometry.pos_croc_TOPROC_top1
-FLEXREAD $pos_croc_BOTROC_top1 siteGeometry.pos_croc_BOTROC_top1
+#Rough Positions of the top bond pad on the Sensor ROC (LaunchROC)
+FLEXREAD $pos_croc_SensorROC_top1 siteGeometry.pos_croc_SensorROC_top1
 
-#Dimensions of the HDI and one of the ROCs
+#Thicknesses of the HDI and the Sensor ROC
 FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
-FLEXREAD $thickness_dualROC geometry.TFPX_CROC_DUALROC.thickness
+FLEXREAD $thickness_sensorROC geometry.TFPX_CROC_SENSORROC.thickness
+FLEXREAD $thickness_sensor geometry.TFPX_CROC_SENSOR.thickness
 
 # Thermal Mockup dimensions
-FLEXREAD $dualROC_bondsToCenter siteGeometry.dualROC_bondsToCenter
+FLEXREAD $sensorROC_bondsToCenter siteGeometry.sensorROC_bondsToCenter
 
 # Bondpad lengths
-FLEXREAD $dist_hdi_bondpads geometry.dist_dualHDI_bondpads
-FLEXREAD $dist_dualROC_bondpads geometry.dist_dualROC_bondpads
+FLEXREAD $dist_hdi_bondpads geometry.dist_CROC_HDI_bondpads
+FLEXREAD $dist_sensorROC_bondpads geometry.dist_sensorROC_bondpads
 
 #Statistical Offsets
-FLEXREAD $delta_TOPROC siteGeometry.delta_TOPROC
-FLEXREAD $delta_BOTROC siteGeometry.delta_BOTROC
+FLEXREAD $delta_SEN_CROC siteGeometry.delta_SEN_CROC
+
 
 # Rotate by 90 degrees for pickup and placement
-COPY $rotate_tool 90
+COPY $rotate_tool 0
 
 
 ## Main Function ##
@@ -72,7 +71,7 @@ FLEXREAD $croc_rot_translation "siteGeometry.croc_rot_translation_STAT_{$station
 SETVAC "croc_chuck_{$station}_top" 0
 SETVAC "croc_chuck_{$station}_bot" 0
 ADD $croc_v_translation.z $croc_v_translation.z $thickness_crocHDI
-SUB $croc_v_translation.z $croc_v_translation.z $thickness_dualROC
+SUB $croc_v_translation.z $croc_v_translation.z $thickness_sensorROC
 
 
 # Step 2. Prompt placement of HDI and turn on the HDI's vacuum
@@ -87,41 +86,30 @@ SETVAC croc_launchHDI 1
 MOVENAME crocStaging 100
 @HDI CHOICEPOPUP $choice "Ready to survey the HDI?" "Yes" "No, ask again"
 GOTOIFN @HDI $choice
-CALL @FINDBONDCENTERS $pos_croc_hdi_top1 $dist_hdi_bondpads -> $pos_croc_TOPhdi_top $pos_croc_TOPhdi_bot
-CALL @FINDBONDCENTERS $pos_croc_hdi_top2 $dist_hdi_bondpads -> $pos_croc_BOThdi_top $pos_croc_BOThdi_bot
+CALL @FINDBONDCENTERS $pos_croc_hdi_top1 $dist_hdi_bondpads -> $pos_croc_hdi_top $pos_croc_hdi_bot
 
 
 # Step 4. Compute would-be position and rotation of HDI on Chuck 1
 @STEP_FOUR PASS
-CALL @CALCPOSANDROT $pos_croc_TOPhdi_top $pos_croc_TOPhdi_bot -> $pos_TOPhdi_final $rot_TOPhdi_final
-ADD $pos_TOPhdi_final $pos_TOPhdi_final $croc_v_translation
-ADD $rot_TOPhdi_final $rot_TOPhdi_final $croc_rot_translation
-
-CALL @CALCPOSANDROT $pos_croc_BOThdi_top $pos_croc_BOThdi_bot -> $pos_BOThdi_final $rot_BOThdi_final
-ADD $pos_BOThdi_final $pos_BOThdi_final $croc_v_translation
-ADD $rot_BOThdi_final $rot_BOThdi_final $croc_rot_translation
+CALL @CALCPOSANDROT $pos_croc_hdi_top $pos_croc_hdi_bot -> $pos_hdi_final $rot_hdi_final
+ADD $pos_hdi_final $pos_hdi_final $croc_v_translation
+ADD $rot_hdi_final $rot_hdi_final $croc_rot_translation
 
 
-# Step 5. Compute the positions of the centers of the two CROCs
+# Step 5. Compute the position of the center of the Sensor CROC
 @STEP_FIVE PASS
 COPY $deltaX {-2.2,0,0}
 
-  # TOP
-CALL @FINDCOORD $pos_TOPhdi_final $rot_TOPhdi_final $deltaX -> $pos_TOPROC_bond_center
-ADD $pos_TOPROC_bond_center $pos_TOPROC_bond_center $delta_TOPROC
-CALL @FINDCOORD $pos_TOPROC_bond_center $rot_TOPhdi_final $dualROC_bondsToCenter -> $pos_TOPROC_final
-
-  # BOTTOM
-CALL @FINDCOORD $pos_BOThdi_final $rot_BOThdi_final $deltaX -> $pos_BOTROC_bond_center
-ADD $pos_BOTROC_bond_center $pos_BOTROC_bond_center $delta_BOTROC
-CALL @FINDCOORD $pos_BOTROC_bond_center $rot_BOThdi_final $dualROC_bondsToCenter -> $pos_BOTROC_final
+CALL @FINDCOORD $pos_hdi_final $rot_hdi_final $deltaX -> $pos_ROC_bond_center
+ADD $pos_ROC_bond_center $pos_ROC_bond_center $delta_SEN_CROC
+CALL @FINDCOORD $pos_ROC_bond_center $rot_hdi_final $sensorROC_bondsToCenter -> $pos_ROC_final
 
 MOVENAME crocStaging 100
 
 
-# Step 6. Prompt the placement of the croc ROCs
+# Step 6. Prompt the placement of the CROC Sensor ROC
 @STEP_SIX SETVAC gelpak_release 1
-CHOICEPOPUP $choice "Have you placed the Two croc ROCs in their starting positions?" "Yes, continue" "No, ask me again"
+CHOICEPOPUP $choice "Have you placed the CROC Sensor ROC in its starting position?" "Yes, continue" "No, ask me again"
 GOTOIFN @STEP_SIX $choice
 SETVAC gelpak_release 0
 SETVAC croc_launchROC_top 1
@@ -136,61 +124,45 @@ GOTOIFN @STEP_FIVE_i $choice
 GOTOIFN @STEP_FIVE_ii $choice
 
 
-# Step 7. Survey the croc ROCs
+# Step 7. Survey the CROC Sensor ROC
 @STEP_SEVEN PASS
-@CROC_0 CHOICEPOPUP $choice "Ready to survey the Top ROC?" "Yes" "No, ask again"
-GOTOIFN @CROC_0 $choice
-CALL @FINDBONDCENTERS $pos_croc_TOPROC_top1 $dist_dualROC_bondpads -> $pos_croc_TOPROC_top $pos_croc_TOPROC_bot
-@CROC_1 CHOICEPOPUP $choice "Ready to survey the Bottom ROC?" "Yes" "No, ask again"
-GOTOIFN @CROC_1 $choice
-CALL @FINDBONDCENTERS $pos_croc_BOTROC_top1 $dist_dualROC_bondpads -> $pos_croc_BOTROC_top $pos_croc_BOTROC_bot
+@CROC CHOICEPOPUP $choice "Ready to survey the Sensor ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC $choice
+CALL @FINDBONDCENTERS $pos_croc_SensorROC_top1 $dist_sensorROC_bondpads -> $pos_croc_ROC_top $pos_croc_ROC_bot
 
 
-# Step 8. Calculate the center of the Two croc ROCs
+# Step 8. Calculate the center of the CROC Sensor ROC
 @STEP_EIGHT PASS
-  #TOP
-CALL @CALCPOSANDROT $pos_croc_TOPROC_top $pos_croc_TOPROC_bot -> $pos_TOPROC_bond_initial $rot_TOPROC_initial
-CALL @FINDCOORD $pos_TOPROC_bond_initial $rot_TOPROC_initial $dualROC_bondsToCenter -> $pos_TOPROC_initial
-  #BOTTOM
-CALL @CALCPOSANDROT $pos_croc_BOTROC_top $pos_croc_BOTROC_bot -> $pos_BOTROC_bond_initial $rot_BOTROC_initial
-CALL @FINDCOORD $pos_BOTROC_bond_initial $rot_BOTROC_initial $dualROC_bondsToCenter -> $pos_BOTROC_initial
+
+CALL @CALCPOSANDROT $pos_croc_ROC_top $pos_croc_ROC_bot -> $pos_ROC_bond_initial $rot_ROC_initial
+CALL @FINDCOORD $pos_ROC_bond_initial $rot_ROC_initial $sensorROC_bondsToCenter -> $pos_ROC_initial
 
 
-# Step 9. Pick up the Thermal Mockups and place them at positions computed in Step 5
+# Step 9. Pick up the Sensor ROC and place it at position computed in Step 5
 @STEP_NINE PASS
 MOVENAME tool_rack_pos_2_out 200
 LOADTOOL picker_tool
 MOVENAME crocStaging 200
 
   #######################
-  # Top ROC Pickup Step #
-CALL @CALCPICKUP $pos_TOPROC_initial $rot_TOPROC_initial -> $pos $pos_z0
+  # Sensor ROC Pickup Step #
+SUB $pos_ROC_initial.z $pos_ROC_initial.z $thickness_sensor
+CALL @CALCPICKUP $pos_ROC_initial $rot_ROC_initial -> $pos $pos_z0
 COPY $top 0
-ADD $changed_rot_TOPROC_initial $rot_TOPROC_initial $rotate_tool
-CALL @PICKUPPART $pos $pos_z0 $changed_rot_TOPROC_initial $top
+ADD $changed_rot_ROC_initial $rot_ROC_initial $rotate_tool
+CALL @PICKUPPART $pos $pos_z0 $changed_rot_ROC_initial
 
-  # Top ROC Place Step  #
-CALL @CALCPICKUP $pos_TOPROC_final $rot_TOPhdi_final -> $pos $pos_z0
-ADD $changed_rot_TOPhdi_final $rot_TOPhdi_final $rotate_tool
-CALL @PLACEPART $pos $pos_z0 $changed_rot_TOPhdi_final $station $top
-  ##########################
-  # Bottom ROC Pickup Step #
-CALL @CALCPICKUP $pos_BOTROC_initial $rot_BOTROC_initial -> $pos $pos_z0
-COPY $bottom 1
-ADD $changed_rot_BOTROC_initial $rot_BOTROC_initial $rotate_tool
-CALL @PICKUPPART $pos $pos_z0 $changed_rot_BOTROC_initial $bottom
-
-  # Bottom ROC Place Step  #
-CALL @CALCPICKUP $pos_BOTROC_final $rot_BOThdi_final -> $pos $pos_z0
-ADD $changed_rot_BOThdi_final $rot_BOThdi_final $rotate_tool
-CALL @PLACEPART $pos $pos_z0 $changed_rot_BOThdi_final $station $bottom
+  # Sensor ROC Place Step  #
+CALL @CALCPICKUP $pos_ROC_final $rot_hdi_final -> $pos $pos_z0
+ADD $changed_rot_hdi_final $rot_hdi_final $rotate_tool
+CALL @PLACEPART $pos $pos_z0 $changed_rot_hdi_final $station
   ##########################
 
 ROTATETO 0 30
 MOVENAME tool_rack_pos_2_out 200
 UNLOADTOOL
 
-MOVENAME crocStaging 100
+HOME
 
 
 # Step 10. Prompt placement of vacuum tool on the HDI and switch the vacuum
@@ -213,7 +185,7 @@ GOTOIFN @STEP_TWELVE $choice
 
 # Step 13. Export the variables
 @STEP_THIRTEEN PASS
-CALL @EXPORTVARS $pos_TOPROC_bond_center $pos_BOTROC_bond_center $pos_TOPhdi_final $pos_BOThdi_final $rot_TOPhdi_final $rot_BOThdi_final $station
+CALL @EXPORTVARS $pos_ROC_bond_center $pos_hdi_final $rot_hdi_final $station
 
 
 # Step 14. End program with vacuums on or off
@@ -362,10 +334,9 @@ END
 #  $pick_pos - pickup position
 #  $pick_pos_z0 - pickup position with z = 0
 #  $pick_rot - rotation of the what is being picked up
-#  $location - value of 0 for "top" and 1 for "bot"
 #
 # No Returns
-@PICKUPPART(pick_pos,pick_pos_z0,pick_rot,location)
+@PICKUPPART(pick_pos,pick_pos_z0,pick_rot)
   MOVESAFE $pick_pos_z0 200
   ROTATETO $pick_rot 10
   SUB $pick_pos.z $pick_pos.z 2
@@ -375,11 +346,9 @@ END
   WAIT 500
   SETVAC gantry_head_inner 1
   WAIT 2000
-  GOTOIF @BOT_VACUUM_OFF $location
   SETVAC "croc_launchROC_top" 0
-  GOTO @PICK_WAIT
-  @BOT_VACUUM_OFF SETVAC "croc_launchROC_bot" 0
-  @PICK_WAIT WAIT 500
+  SETVAC "croc_launchROC_bot" 0
+  WAIT 500
   SUB $pick_pos.z $pick_pos.z 2
   MOVETO $pick_pos 1
   MOVETO $pick_pos_z0 25
@@ -393,10 +362,9 @@ END
 #  $place_pos_z0 - pickup position with z = 0
 #  $place_rot - rotation of the what is being picked up
 #  $stat - station number
-#  $location - string that is either "top" or "bot"
 #
 # No Returns
-@PLACEPART(place_pos,place_pos_z0,place_rot,stat,location)
+@PLACEPART(place_pos,place_pos_z0,place_rot,stat)
   MOVESAFE $place_pos_z0 200
   ROTATETO $place_rot 10
   SUB $place_pos.z $place_pos.z 2
@@ -404,11 +372,9 @@ END
   ADD $place_pos.z $place_pos.z 2
   MOVETO $place_pos 1
   WAIT 500
-  GOTOIF @BOT_VACUUM_ON $location
   SETVAC "croc_chuck_{$stat}_top" 1
-  GOTO @PLACE_WAIT
-  @BOT_VACUUM_ON SETVAC "croc_chuck_{$stat}_bot" 1
-  @PLACE_WAIT WAIT 1000
+  SETVAC "croc_chuck_{$stat}_bot" 1
+  WAIT 1000
   SETVAC gantry_head_inner 0
   WAIT 2000
   SUB $place_pos.z $place_pos.z 2
@@ -422,19 +388,16 @@ END
 # The goal is to pass all variables necessary for surveillance
 #
 # No returns
-@EXPORTVARS(top_dualROC_pos,bot_dualROC_pos,top_hdi_pos,bot_hdi_pos,top_hdi_rot,bot_hdi_rot,stat_num)
-  SETLOG "CROC_DUALROC_output_station_{$stat_num}.txt"
+@EXPORTVARS(sensorROC_pos,hdi_pos,hdi_rot,stat_num)
+  SETLOG "CROC_SENSORROC_output_station_{$stat_num}.txt"
   CLEARLOG
   PRINT ""
     #ROC position data
-  XPRINT "dual.pos_TOPROC_bond_center: %v" $top_dualROC_pos
-  XPRINT "dual.pos_BOTROC_bond_center: %v" $bot_dualROC_pos
+  XPRINT "sensor.pos_SENSORROC_bond_center: %v" $sensorROC_pos
     #HDI position data
-  XPRINT "dual.pos_TOPhdi_final: %v" $top_hdi_pos
-  XPRINT "dual.pos_BOThdi_final: %v" $bot_hdi_pos
+  XPRINT "sensor.pos_hdi_final: %v" $hdi_pos
     #Rotational data
-  XPRINT "dual.rot_TOPhdi_final: %f" $top_hdi_rot
-  XPRINT "dual.rot_BOThdi_final: %f" $bot_hdi_rot
+  XPRINT "sensor.rot_hdi_final: %f" $hdi_rot
   PRINT""
   RETURN
 
