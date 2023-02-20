@@ -1,0 +1,43 @@
+VERSION v2.1
+
+## Initialize variables for Calculating
+COPY $initial_pos {2,4,6}
+COPY $initial_rot 0
+COPY $dxdy {4,3,0}
+
+CALL @FINDCOORD $initial_pos $initial_rot $dxdy -> $final_pos
+
+PRINT "Final Position: %v" $final_pos
+
+END
+
+
+# FIND COORD
+# Arguments:
+# $int_pos - initial position
+# $int_rot - initial rotation
+# $deltas - change in x and y in the int_rot coordinate system {delta_x, delta_y, 0}
+#         - these values can be positive or negative
+#
+# Returns:
+# $fin_pos - final position
+@FINDCOORD(int_pos,int_rot,deltas)
+  COPY $fin_pos $int_pos
+  COPY $delta_x $deltas.x
+  COPY $delta_y $deltas.y
+
+  SIN $sin_theta $int_rot
+  COS $cos_theta $int_rot
+
+  MUL $dx_sin $delta_x $sin_theta
+  MUL $dx_cos $delta_x $cos_theta
+  MUL $dy_sin $delta_y $sin_theta
+  MUL $dy_cos $delta_y $cos_theta
+
+  ADD $fin_pos.x $fin_pos.x $dx_cos
+  SUB $fin_pos.x $fin_pos.x $dy_sin
+
+  ADD $fin_pos.y $fin_pos.y $dx_sin
+  ADD $fin_pos.y $fin_pos.y $dy_cos
+
+  RETURN $fin_pos

@@ -1,0 +1,541 @@
+VERSION v2.1
+######################## CROC Assembly Multi Glass Mockup  #############################
+# Steps:
+# 1. Prompt placement of HDI and turn on the HDI's vacuum
+# 2. Move the gantry to the HDI for surveillance
+# 3. Compute would-be position and rotation of HDI on Chuck 1
+# 4. Compute the positions of the center of the thermal mockup
+# 5. Prompt the placement of the thermal mockup
+#    i. Is the end placement location clear?
+#    ii. Is the Pickup Tool ready?
+# 6. Survey the thermal mockup
+# 7. Calculate the center of the Single Glass Mockup
+# 8. Pick up the Thermal Mockups and place them at positions computed in Step 4
+# 9. Prompt placement of vacuum tool on the HDI and switch the vacuum
+# 10. Check that the HDI was moved and the adhesive was applied
+# 11. Prompt placement of Vacuum Tool bearing HDI onto the thermal mockup
+# 12. Prompt replacement of Vacuum Tool to its original position
+# 13. Calculate the placement of the HDI top and bottom bond pads
+# 14. Calculate the placement of the Single Glass's top and bottom bond pads
+# 15. Move gantry head to the module and survey for accuracy
+# 16. Calculate the meaningful values
+# 17. End program with vacuums on or off
+
+#Initialize the system
+LOADCONFIG
+HOME
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_chuck_1_top 0
+SETVAC croc_chuck_1_bot 0
+SETVAC croc_chuck_2_top 0
+SETVAC croc_chuck_2_bot 0
+SETVAC croc_chuck_3 0
+SETVAC croc_hdipicker 0
+SETVAC gelpak_release 0
+SETLOG "LOG_Assembly_CROC_MultiGlass_DataGeneration.txt"
+SETERRORMODE prompt
+
+#Rough position of the top bond pad on the CROC HDI (chuck 3)
+FLEXREAD $pos_croc_hdi_top1 siteGeometry.pos_croc_hdi_top1
+
+#Rough Positions of the top right corner of the 2 Thermal Mockups (chuck 2)
+FLEXREAD $pos_croc_TOPGlass_top1 siteGeometry.pos_croc_TOPGlass_top1
+FLEXREAD $pos_croc_BOTGlass_top1 siteGeometry.pos_croc_BOTGlass_top1
+
+#Dimensions of the HDI and Thermal Mockups
+FLEXREAD $dist_hdi_half_bondpads siteGeometry.dist_hdi_half_bondpads
+FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
+FLEXREAD $dist_multiGlass_bondpads siteGeometry.dist_multiGlass_bondpads
+FLEXREAD $thickness_multiGlass geometry.TFPX_CROC_MULTIGLASS.thickness
+
+# HDI pick and place translation vector and rotation angle measured independently
+# Correct for the thickness of the Thermal Mockup
+FLEXREAD $croc_v_translation siteGeometry.croc_v_translation
+SUB $croc_v_translation.z $croc_v_translation.z $thickness_multiGlass
+ADD $croc_v_translation.z $croc_v_translation.z $thickness_crocHDI
+FLEXREAD $croc_rot_translation siteGeometry.croc_rot_translation
+
+# Other Thermal Mockup imortant dimensions
+FLEXREAD $multiGlass_bonds2center siteGeometry.singleGlass_bondsToCenter
+
+# Parameters that can help with Final Adjustments
+FLEXREAD $delta_TOPGlass siteGeometry.delta_TOPGlass
+FLEXREAD $delta_BOTGlass siteGeometry.delta_BOTGlass
+
+
+## Main Function ##
+
+# Step 1. Prompt placement of HDI and turn on the HDI's vacuum
+PRINT "--------------------"
+@STEP_ONE CHOICEPOPUP $choice "Have you placed the CROC HDI in its correct starting location?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ONE $choice
+SETVAC croc_chuck_3 1
+
+
+# Step 2. Move the gantry to the HDI for surveillance
+@STEP_TWO PASS
+MOVENAME crocStaging 100
+@HDI_0 CHOICEPOPUP $choice "Ready to survey the top section of the HDI?" "Yes" "No, ask again"
+GOTOIFN @HDI_0 $choice
+CALL @FINDBONDCENTERS $pos_croc_hdi_top1 $dist_hdi_half_bondpads -> $pos_TOPcroc_hdi_top $pos_TOPcroc_hdi_bot
+
+@HDI_1 CHOICEPOPUP $choice "Ready to survey the bottom section of the HDI?" "Yes" "No, ask again"
+GOTOIFN @HDI_1 $choice
+CALL @FINDBONDCENTERS $pos_TOPcroc_hdi_bot $dist_hdi_half_bondpads -> $pos_BOTcroc_hdi_top $pos_BOTcroc_hdi_bot
+
+
+# Step 3. Compute would-be position and rotation of HDI on Chuck 1
+@STEP_THREE PASS
+CALL @CALCPOSANDROT $pos_TOPcroc_hdi_top $pos_TOPcroc_hdi_bot -> $pos_TOPhdi_final $rot_TOPhdi_final
+CALL @CALCPOSANDROT $pos_BOTcroc_hdi_top $pos_BOTcroc_hdi_bot -> $pos_BOThdi_final $rot_BOThdi_final
+ADD $pos_TOPhdi_final $pos_TOPhdi_final $croc_v_translation
+ADD $pos_BOThdi_final $pos_BOThdi_final $croc_v_translation
+ADD $rot_TOPhdi_final $rot_TOPhdi_final $croc_rot_translation
+ADD $rot_BOThdi_final $rot_BOThdi_final $croc_rot_translation
+
+
+# Step 4. Compute the positions of the centers of the two thermal mockups
+@STEP_FOUR PASS
+COPY $deltaX {-2.0,0,0}
+
+  #TOP
+CALL @FINDCOORD $pos_TOPhdi_final $rot_TOPhdi_final $deltaX -> $pos_TOPglass_bond_center
+ADD $pos_TOPglass_bond_center $pos_TOPglass_bond_center $delta_TOPGlass
+CALL @FINDCOORD $pos_TOPglass_bond_center $rot_TOPhdi_final $multiGlass_bonds2center -> $pos_TOPGlass_final
+
+  #BOTTOM
+CALL @FINDCOORD $pos_BOThdi_final $rot_BOThdi_final $deltaX -> $pos_BOTglass_bond_center
+ADD $pos_BOTglass_bond_center $pos_BOTglass_bond_center $delta_BOTGlass
+CALL @FINDCOORD $pos_BOTglass_bond_center $rot_BOThdi_final $multiGlass_bonds2center -> $pos_BOTGlass_final
+MOVENAME crocStaging 100
+
+# Step 5. Prompt the placement of the thermal mockups
+@STEP_FIVE SETVAC gelpak_release 1
+CHOICEPOPUP $choice "Have you placed the Multiple Glass Thermal Mockups in their starting positions?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE $choice
+SETVAC gelpak_release 0
+SETVAC croc_chuck_2_top 1
+SETVAC croc_chuck_2_bot 1
+
+  #i. Is the end placement location clear?
+@STEP_FIVE_i CHOICEPOPUP $choice "Is chuck 1 clear?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_i $choice
+
+  #ii. Is the Pickup Tool ready?
+@STEP_FIVE_ii CHOICEPOPUP $choice "Is the Pickup Tool ready?" "Yes, continue" "No, move to home and ask me again"
+GOTOIF @STEP_SIX $choice
+HOME
+GOTO @STEP_FIVE_ii
+
+
+# Step 6. Survey the thermal mockups
+@STEP_SIX PASS
+@CROC_0 CHOICEPOPUP $choice "Ready to survey the Top Glass Mockup?" "Yes" "No, ask again"
+GOTOIFN @CROC_0 $choice
+CALL @FINDBONDCENTERS $pos_croc_TOPGlass_top1 $dist_multiGlass_bondpads -> $pos_croc_TOPGlass_top $pos_croc_TOPGlass_bot
+
+@CROC_1 CHOICEPOPUP $choice "Ready to survey the Bottom Glass Mockup?" "Yes" "No, ask again"
+GOTOIFN @CROC_1 $choice
+CALL @FINDBONDCENTERS $pos_croc_BOTGlass_top1 $dist_multiGlass_bondpads -> $pos_croc_BOTGlass_top $pos_croc_BOTGlass_bot
+
+
+# Step 7. Calculate the centers and rotations of the Two Glass Mockups
+@STEP_SEVEN PASS
+CALL @CALCPOSANDROT $pos_croc_TOPGlass_top $pos_croc_TOPGlass_bot -> $pos_TOPGlass_bond_initial $rot_TOPGlass_initial
+CALL @FINDCOORD $pos_TOPGlass_bond_initial $rot_TOPGlass_initial $multiGlass_bonds2center -> $pos_TOPGlass_initial
+
+CALL @CALCPOSANDROT $pos_croc_BOTGlass_top $pos_croc_BOTGlass_bot -> $pos_BOTGlass_bond_initial $rot_BOTGlass_initial
+CALL @FINDCOORD $pos_BOTGlass_bond_initial $rot_BOTGlass_initial $multiGlass_bonds2center -> $pos_BOTGlass_initial
+
+# Step 8. Pick up the Thermal Mockups and place them at positions computed in Step 4
+@STEP_EIGHT PASS
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME crocStaging 100
+
+#######TOP#######
+  # Pickup Step #
+CALL @CALCPICKUP $pos_TOPGlass_initial $rot_TOPGlass_initial -> $pos $pos_z0
+COPY $vac @TURNOFF_chuck_2_top
+CALL @PICKUPPART $pos $pos_z0 $rot_TOPGlass_initial $vac
+
+  # Place Step
+CALL @CALCPICKUP $pos_TOPGlass_final $rot_TOPhdi_final -> $pos $pos_z0
+COPY $vac @TURNON_chuck_1_top
+CALL @PLACEPART $pos $pos_z0 $rot_TOPhdi_final $vac
+
+#####BOTTOM######
+  # Pickup Step #
+CALL @CALCPICKUP $pos_BOTGlass_initial $rot_BOTGlass_initial -> $pos $pos_z0
+COPY $vac @TURNOFF_chuck_2_bot
+CALL @PICKUPPART $pos $pos_z0 $rot_BOTGlass_initial $vac
+
+  # Place Step
+CALL @CALCPICKUP $pos_BOTGlass_final $rot_BOThdi_final -> $pos $pos_z0
+COPY $vac @TURNON_chuck_1_bot
+CALL @PLACEPART $pos $pos_z0 $rot_BOThdi_final $vac
+
+
+ROTATETO 0 10
+UNLOADTOOL
+
+MOVENAME crocStaging 100
+
+
+# Step 9. Prompt placement of vacuum tool on the HDI and switch the vacuum
+@STEP_NINE CHOICEPOPUP $choice "Have you placed the Vacuum Tool on the HDI on Chuck 3?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_NINE $choice
+SETVAC croc_hdipicker 1
+WAIT 1000
+SETVAC croc_chuck_3 0
+
+
+# Step 10. Check that the HDI was moved and the adhesive was applied
+@STEP_TEN CHOICEPOPUP $choice "Did you move the HDI to Chuck 4 and apply the adhesive?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TEN $choice
+
+
+# Step 11. Prompt placement of Vacuum Tool bearing HDI onto the thermal mockup
+@STEP_ELEVEN CHOICEPOPUP $choice "Did you place the HDI on the Thermal Mockup on Chuck 1 (With adhesive between them)?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ELEVEN $choice
+SETVAC croc_hdipicker 0
+
+
+# Step 12. Prompt replacement of Vacuum Tool to its original position
+@STEP_TWELVE CHOICEPOPUP $choice "Did you place the Vacuum Tool on Chuck 4?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TWELVE $choice
+
+
+# Step 13. Calculate the placement of the HDI's top bond pad
+COPY $hdi_half_bondpads {0,$dist_hdi_half_bondpads,0}
+MUL $hdi_half_bondpads.y $hdi_half_bondpads.y -0.5
+CALL @FINDCOORD $pos_TOPhdi_final $rot_TOPhdi_final $hdi_half_bondpads -> $pos_TOPhdi_top_final
+#SUB $pos_TOPhdi_top_final.y $pos_TOPhdi_top_final.y $thickness_crocHDI
+  #BOTTOM SET OF HDI PADS
+CALL @FINDCOORD $pos_BOThdi_final $rot_BOThdi_final $hdi_half_bondpads -> $pos_BOThdi_top_final
+#SUB $pos_BOThdi_top_final.y $pos_BOThdi_top_final.y $thickness_crocHDI
+
+
+# Step 14. Calculate the placement of the Two top bond pad for the Glass pieces
+COPY $half_dist_mG_bondpads {0,$dist_multiGlass_bondpads,0}
+MUL $half_dist_mG_bondpads.y $half_dist_mG_bondpads.y -0.5
+CALL @FINDCOORD $pos_TOPglass_bond_center $rot_TOPhdi_final $half_dist_mG_bondpads -> $pos_TOPGlass_top_final
+  #BOTTOM GLASS
+CALL @FINDCOORD $pos_BOTglass_bond_center $rot_BOThdi_final $half_dist_mG_bondpads -> $pos_BOTGlass_top_final
+
+
+# Step 15. Move gantry head to the module and survey for accuracy
+@HDI_2 CHOICEPOPUP $choice "Ready to survey the Top HDI bondpads?" "Yes" "No, ask again"
+GOTOIFN @HDI_2 $choice
+CALL @FINDBONDCENTERS $pos_TOPhdi_top_final $dist_hdi_half_bondpads -> $pos_TOPhdi_top_final $pos_TOPhdi_bot_final
+
+@HDI_3 CHOICEPOPUP $choice "Ready to survey the Bottom HDI bondpads?" "Yes" "No, ask again"
+GOTOIFN @HDI_3 $choice
+CALL @FINDBONDCENTERS $pos_BOThdi_top_final $dist_hdi_half_bondpads -> $pos_BOThdi_top_final $pos_BOThdi_bot_final
+
+@CROC_2 CHOICEPOPUP $choice "Ready to survey the Top Glass Mockup?" "Yes" "No, ask again"
+GOTOIFN @CROC_2 $choice
+CALL @FINDBONDCENTERS $pos_TOPGlass_top_final $dist_multiGlass_bondpads -> $pos_TOPGlass_top_final $pos_TOPGlass_bot_final
+
+@CROC_3 CHOICEPOPUP $choice "Ready to survey the Bottom Glass Mockup?" "Yes" "No, ask again"
+GOTOIFN @CROC_3 $choice
+CALL @FINDBONDCENTERS $pos_BOTGlass_top_final $dist_multiGlass_bondpads -> $pos_BOTGlass_top_final $pos_BOTGlass_bot_final
+
+
+# Step 16. Calculate the meaningful values
+@STEP_SIXTEEN PASS
+  ### TOP ###
+CALL @SURVEYCALC $pos_TOPhdi_top_final $pos_TOPhdi_bot_final $pos_TOPGlass_top_final -> $TOP_d_top_x $TOP_d_top_y
+CALL @SURVEYCALC $pos_TOPhdi_bot_final $pos_TOPhdi_top_final $pos_TOPGlass_bot_final -> $TOP_d_bot_x $TOP_d_bot_y
+
+SUB $TOP_d_DeltaX $TOP_d_top_x $TOP_d_bot_x
+ADD $TOP_avg_DeltaY $TOP_d_top_y $TOP_d_bot_y
+MUL $TOP_avg_DeltaY $TOP_avg_DeltaY 0.5
+
+PRINT "======TOP Bond Pads======"
+PRINT "Delta(delta(X)): %f" $TOP_d_DeltaX
+PRINT "Avg(delta(Y)):   %f" $TOP_avg_DeltaY
+
+  ### BOTTOM ###
+CALL @SURVEYCALC $pos_BOThdi_top_final $pos_BOThdi_bot_final $pos_BOTGlass_top_final -> $BOT_d_top_x $BOT_d_top_y
+CALL @SURVEYCALC $pos_BOThdi_bot_final $pos_BOThdi_top_final $pos_BOTGlass_bot_final -> $BOT_d_bot_x $BOT_d_bot_y
+
+SUB $BOT_d_DeltaX $BOT_d_top_x $BOT_d_bot_x
+ADD $BOT_avg_DeltaY $BOT_d_top_y $BOT_d_bot_y
+MUL $BOT_avg_DeltaY $BOT_avg_DeltaY 0.5
+
+PRINT "=====BOTTOM Bond Pads====="
+PRINT "Delta(delta(X)): %f" $BOT_d_DeltaX
+PRINT "Avg(delta(Y)):   %f" $BOT_avg_DeltaY
+
+
+# Step 17. End program with vacuums on or off
+@STEP_SEVENTEEN PASS
+CHOICEPOPUP $choice "Do you want to leave the vacuums on?" "Yes, Leave them on" "No, Turn them off"
+GOTOIF @STEP_END $choice
+
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_chuck_1_top 0
+SETVAC croc_chuck_1_bot 0
+SETVAC croc_chuck_2_top 0
+SETVAC croc_chuck_2_bot 0
+SETVAC croc_chuck_3 0
+SETVAC croc_hdipicker 0
+SETVAC gelpak_release 0
+
+@STEP_END HOME
+
+END
+
+# SURVEYCORNERS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYCORNERS(x_corner)
+  MOVESAFE $x_corner 100
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you correctly align the cursor with the marker?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+
+# FINDBONDCENTERS
+# Arguments:
+# $top_bond1 - rough position of a corner of the top bond pad
+# $bond_len - length of the bond pads
+#
+# Returns:
+# $top_bond - center of the top-most bond pad
+# $bot_bond - cneter of the bottom-most bond pad
+@FINDBONDCENTERS(top_bond1,bond_len)
+  @FIND_0 CHOICEPOPUP $choice "Ready to find a corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_0 $choice
+  CALL @SURVEYCORNERS $top_bond1 -> $top_bond1
+
+  COPY $top_bond2 $top_bond1
+  @FIND_1 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_1 $choice
+  CALL @SURVEYCORNERS $top_bond2 -> $top_bond2
+
+  COPY $bot_bond1 $top_bond1
+  ADD $bot_bond1.y $bot_bond1.y $bond_len
+  @FIND_2 CHOICEPOPUP $choice "Ready to find a corner of the bottom bond pad?" "Yes" "No"
+  GOTOIFN @FIND_2 $choice
+  CALL @SURVEYCORNERS $bot_bond1 -> $bot_bond1
+
+  COPY $bot_bond2 $bot_bond1
+  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_3 $choice
+  CALL @SURVEYCORNERS $bot_bond2 -> $bot_bond2
+
+    # Getting the center of the bond pads
+  ADD $top_bond $top_bond1 $top_bond2
+  MUL $top_bond $top_bond {0.5,0.5,0.5}
+  ADD $bot_bond $bot_bond1 $bot_bond2
+  MUL $bot_bond $bot_bond {0.5,0.5,0.5}
+  RETURN $top_bond $bot_bond
+
+
+
+# CALCPOSANDROT
+# Arguments:
+# $top_pos - position of the center of the top hdi bond pad
+# $bot_pos - position of the center of the bottom hdi bond pad
+#
+# Returns:
+# $pos - the center position between the two points
+# $rot - the rotation of the hdi (knowing the gantry's rotational system)
+@CALCPOSANDROT(top_pos,bot_pos)
+  ADD $pos $top_pos $bot_pos
+  MUL $pos $pos {0.5,0.5,0.5}
+
+  SUB $x_input $bot_pos.y $top_pos.y
+  SUB $y_input $top_pos.x $bot_pos.x
+  ATAN2 $rot $x_input $y_input
+
+  RETURN $pos $rot
+
+
+# FIND COORD
+# Arguments:
+# $int_pos - initial position
+# $int_rot - initial rotation
+# $deltas - change in x and y in the int_rot coordinate system {delta_x, delta_y, 0}
+#         - these values can be positive or negative
+#
+# Returns:
+# $fin_pos - final position
+@FINDCOORD(int_pos,int_rot,deltas)
+  COPY $fin_pos $int_pos
+  COPY $delta_x $deltas.x
+  COPY $delta_y $deltas.y
+
+  SIN $sin_theta $int_rot
+  COS $cos_theta $int_rot
+
+  MUL $dx_sin $delta_x $sin_theta
+  MUL $dx_cos $delta_x $cos_theta
+  MUL $dy_sin $delta_y $sin_theta
+  MUL $dy_cos $delta_y $cos_theta
+
+  ADD $fin_pos.x $fin_pos.x $dx_cos
+  SUB $fin_pos.x $fin_pos.x $dy_sin
+
+  ADD $fin_pos.y $fin_pos.y $dx_sin
+  ADD $fin_pos.y $fin_pos.y $dy_cos
+
+  RETURN $fin_pos
+
+
+# CALCPICKUP
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#  $target_rot - rotation of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+#  $pickup_pos_z0 - pickup position with z = 0
+@CALCPICKUP(target_pos,target_rot)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  COPY $pickup_pos_z0 $pickup_pos
+  COPY $pickup_pos_z0.z 0
+  RETURN $pickup_pos $pickup_pos_z0
+
+
+# PICKUPPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of the what is being picked up
+#  $vacuum -
+#
+# No Returns
+@PICKUPPART(pick_pos,pick_pos_z0,pick_rot,vacuum)
+  MOVESAFE $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+  GOTO $vacuum
+  @TURNOFF_chuck_2_top SETVAC croc_chuck_2_top 0
+  GOTO @VACUUM_OFF
+  @TURNOFF_chuck_2_bot SETVAC croc_chuck_2_bot 0
+  @VACUUM_OFF
+  WAIT 1000
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  MOVETO $pick_pos_z0 50
+  RETURN
+
+
+# PLACEPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $place_pos - pickup position
+#  $place_pos_z0 - pickup position with z = 0
+#  $place_rot - rotation of the what is being picked up
+#  $vacIndex - current vacuum that needs to be turned on (passed as number)
+#
+# No Returns
+@PLACEPART(place_pos,place_pos_z0,place_rot,vacIndex)
+  MOVESAFE $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  WAIT 500
+  GOTO $vacIndex
+  @TURNON_chuck_1_top SETVAC croc_chuck_1_top 1
+  GOTO @VACWAIT
+  @TURNON_chuck_1_bot SETVAC croc_chuck_1_bot 1
+  @VACWAIT
+  WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 50
+  RETURN
+
+
+# SURVEYCALC
+# Arguments:
+#  $near_hdi - Center position for the nearest HDI bond pad
+#  $far_hdi - Center position for the furthest HDI bond pad
+#  $ROC - Center position for the current ROC bond pad
+#
+# Returns:
+#  $delta_x
+#  $delta_y
+@SURVEYCALC(near_hdi,far_hdi,ROC)
+  #Variables
+  COPY $a $near_hdi.x
+  COPY $b $near_hdi.y
+  COPY $c $far_hdi.x
+  COPY $d $far_hdi.y
+  COPY $e $ROC.x
+  COPY $f $ROC.y
+
+  #Slope
+  SUB $b_min_d $b $d
+  SUB $a_min_c $a $c
+  INVERT $a_min_c $a_min_c
+  MUL $slope $b_min_d $a_min_c
+
+  #Calulating numerator for x
+  MUL $slope_2 $slope $slope
+  MUL $top_one $a $slope_2
+  SUB $f_min_b $f $b
+  MUL $top_two $f_min_b $slope
+  ADD $top_oneTwo $top_one $top_two
+  ADD $top $top_oneTwo $e
+
+  #Calculating denominator for x
+  ADD $bottom $slope_2 1
+  INVERT $bottom $bottom
+
+  #Calculating x and y
+  MUL $x $top $bottom
+  INVERT $inv_slope $slope
+  MUL $inv_slope $inv_slope -1
+  SUB $x_min_e $x $e
+  MUL $y_one $inv_slope $x_min_e
+  ADD $y $y_one $f
+
+  #Calculating deltas
+  SUB $a_min_x $a $x
+  SUB $b_min_y $b $y
+  SUB $e_min_x $e $x
+  SUB $f_min_y $f $y
+
+  POW $a_min_x_2 $a_min_x 2
+  POW $b_min_y_2 $b_min_y 2
+  ADD $delta_y_2 $a_min_x_2 $b_min_y_2
+  POW $delta_y $delta_y_2 0.5
+
+  ABS $abs_b_min_y $b_min_y
+  INVERT $abs_b_min_y $abs_b_min_y
+  MUL $sign_b_min_y $b_min_y $abs_b_min_y
+  MUL $delta_y $sign_b_min_y $delta_y
+
+  PRINT "Delta y: %f" $delta_y
+
+  POW $e_min_x_2 $e_min_x 2
+  POW $f_min_y_2 $f_min_y 2
+  ADD $delta_x_2 $e_min_x_2 $f_min_y_2
+  POW $delta_x $delta_x_2 0.5
+  RETURN $delta_x $delta_y
