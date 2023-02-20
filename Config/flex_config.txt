@@ -11,7 +11,7 @@ light.gantryhead.hardware_address: Y.0
 # light.gantryhead.control: minidaq
 # light.gantryhead.hardware_address: cDAQ1Mod2/ao0
 
-dispenser.hardware_address: cDAQ1Mod6/port0/line30
+#dispenser.hardware_address: cDAQ1Mod6/port0/line30
 
 vacuum.gantry_head_outer: 0
 vacuum.gantry_head_inner: 2
@@ -27,6 +27,17 @@ vacuum.croc_chuck_3: 9
 vacuum.croc_launchHDI: 9
 vacuum.croc_hdipicker: 10
 vacuum.croc_weight_0: 10
+#vacuum.croc2x2_weight_0: 
+vacuum.croc2x2_launchHDI: 24
+vacuum.croc2x2_launchROC_tr: 14
+vacuum.croc2x2_launchROC_br: 3
+vacuum.croc2x2_launchROC_bl: 15
+vacuum.croc2x2_launchROC_tl: 18
+vacuum.croc2x2_chuck_0_tr: 11
+vacuum.croc2x2_chuck_0_br: 30
+vacuum.croc2x2_chuck_0_bl: 28
+vacuum.croc2x2_chuck_0_tl: 31
+
 vacuum.module_chuck_0_slot_1: 24
 vacuum.module_chuck_0_slot_2: 18
 vacuum.rd53a_chuck_1_TL: 19
@@ -75,6 +86,7 @@ manifold.port.26: cDAQ1Mod6/port0/line26
 manifold.port.27: cDAQ1Mod6/port0/line27
 manifold.port.28: cDAQ1Mod6/port0/line28
 manifold.port.29: cDAQ1Mod6/port0/line29
+manifold.port.30: cDAQ1Mod6/port0/line30
 manifold.port.31: cDAQ1Mod6/port0/line31
 
 tool_rack.0: none
@@ -134,6 +146,7 @@ geometry.TFPX_RD53AHDI.thickness: 0.241
 geometry.TFPX_RD53AHDI.dim_bondHDI: {9.843,19.711,0}  #(width,length) # Dimensions of the HDI Bond Pads
 geometry.TFPX_RD53AHDI.len_bondpad_HDI: 0.77
 
+
 geometry.TFPX_CROC_MULTIGLASS.fid_tr: {9.214,-10.328,0}
 geometry.TFPX_CROC_MULTIGLASS.fid_br: {9.214,10.328,0}
 geometry.TFPX_CROC_MULTIGLASS.fid_bl: {-9.214,10.328,0}
@@ -147,6 +160,19 @@ geometry.TFPX_CROC_HDI.thickness: 0.290
 geometry.TFPX_CROC_DUALROC.thickness: 0.808
 geometry.dist_dualHDI_bondpads: 21.216 #mm
 geometry.dist_dualROC_bondpads: 21.064 #mm
+
+geometry.TFPX_CROC2X2_HDI.thickness: 0.600 #REMEASURE
+geometry.TFPX_CROC2X2_QUADROC.thickness: 0.808 
+geometry.dist_quadHDI_bondpads: 20.15 #REMEASURE
+geometry.dist_quadROC_bondpads: 21.064
+
+
+# geometry.TFPX_CROC_SENSORROC.thickness: 0.715
+# geometry.TFPX_CROC_SENSOR.thickness: 0.225
+geometry.TFPX_CROC_SENSORROC.thickness: 0.392 # for HPK
+geometry.TFPX_CROC_SENSOR.thickness: 0.225    # for HPK
+geometry.dist_CROC_HDI_bondpads: 42.949
+geometry.dist_sensorROC_bondpads: 43.051
 
 
 geometry.TFPX_GHCOPIECE.fid_tr: {7.978,-10.975,0}
@@ -232,6 +258,14 @@ siteGeometry.croc_rot_translation_STAT_0: 0.1617344
 siteGeometry.dualROC_bondsToCenter: {9.228,0,0}
 
 
+### Information for the CROC Sensor ROC Script
+siteGeometry.pos_croc_SensorROC_top1: {111.929,522.735,99.582}
+siteGeometry.delta_SEN_CROC: {0,0,0}
+
+  # Vector from center of the bond pads on the Sensor ROC to its center
+siteGeometry.sensorROC_bondsToCenter: {10.098646,0,0}
+
+
 
  # HDI pick and place translation vector and rotation angle
 siteGeometry.v_hdi_translation: {-49.833,0.065,-6.350}
@@ -244,6 +278,33 @@ siteGeometry.rot_senRoc_error: -0.007
  # ROC translation Correctional Terms (after statistical study):
 siteGeometry.v_ROC_error: {0,0,0}
 siteGeometry.rot_ROC_error: 0
+
+### QuadROC Information
+
+ # HDI position data
+siteGeometry.pos_croc2x2_hdi_TR: {658.564,527.066,99.447} #REMEASURE WITH HDI
+siteGeometry.pos_croc2x2_hdi_BR: {658.330,549.579,99.447} #REMEASURE WITH HDI
+siteGeometry.pos_croc2x2_hdi_BL: {623.367,550.101,99.447} #REMEASURE WITH HDI
+siteGeometry.pos_croc2x2_hdi_TL: {622.653,528.045,99.447} #REMEASURE WITH HDI
+
+ # QuadROC position data
+siteGeometry.pos_croc2x2_TR: {583.619,516.583,99.547}
+siteGeometry.pos_croc2x2_BR: {583.613,540.641,99.517}
+siteGeometry.pos_croc2x2_BL: {543.271,540.489,99.487}
+siteGeometry.pos_croc2x2_TL: {543.809,515.534,99.522}
+
+ # Vector from center of the bond pads on the Sensor ROC to its center
+siteGeometry.quadROC_bondsToCenter: {9.228,0,0}
+
+ # Station 0 data
+siteGeometry.croc2x2_v_translation_STAT_0: {-149.566,0.168,-7.603}
+siteGeometry.croc2x2_rot_translation_STAT_0: 0 #REMEASURE
+
+ # Fine Correction for the Quad ROC Script
+siteGeometry.delta_TRROC: {0,0,0}
+siteGeometry.delta_BRROC: {0,0,0}
+siteGeometry.delta_BLROC: {0,0,0}
+siteGeometry.delta_TLROC: {0,0,0}
 
  # Fine correction for the ROCs to align bond pads with HDI bond pads
 siteGeometry.delta_ROC: {0,0,0} # {width, length, 0}
