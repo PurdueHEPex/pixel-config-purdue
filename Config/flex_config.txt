@@ -37,6 +37,11 @@ vacuum.croc2x2_chuck_0_tr: 11
 vacuum.croc2x2_chuck_0_br: 30
 vacuum.croc2x2_chuck_0_bl: 28
 vacuum.croc2x2_chuck_0_tl: 31
+vacuum.croc2x2_chuck_1: 29
+vacuum.croc2x2_chuck_2: 12
+vacuum.croc2x2_chuck_3: 13
+vacuum.croc2x2_chuck_4: 13 #RELABEL
+vacuum.croc2x2_chuck_0: 13 #RELABEL
 
 vacuum.module_chuck_0_slot_1: 24
 vacuum.module_chuck_0_slot_2: 18
@@ -166,6 +171,16 @@ geometry.TFPX_CROC2X2_QUADROC.thickness: 0.808
 geometry.dist_quadHDI_bondpads: 20.15 #REMEASURE
 geometry.dist_quadROC_bondpads: 21.064
 
+geometry.TFPX_CROC2X2_HDI.fid_tr: {17.50,-21.40,0} #REMEASURE
+geometry.TFPX_CROC2X2_HDI.fid_br: {17.50,21.40,0} #REMEASURE
+geometry.TFPX_CROC2X2_HDI.fid_bl: {-17.50,21.40,0} #REMEASURE
+geometry.TFPX_CROC2X2_HDI.fid_tl: {-17.50,-21.40,0} #REMEASURE
+
+geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tr: {18.795,-22.265,0} #REMEASURE
+geometry.TFPX_CROC2X2_QUADSENSORROC.fid_br: {18.795,22.265,0} #REMEASURE
+geometry.TFPX_CROC2X2_QUADSENSORROC.fid_bl: {-18.795,22.265,0} #REMEASURE
+geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tl: {-18.795,-22.265,0} #REMEASURE
+
 
 # geometry.TFPX_CROC_SENSORROC.thickness: 0.715
 # geometry.TFPX_CROC_SENSOR.thickness: 0.225
@@ -175,12 +190,14 @@ geometry.dist_CROC_HDI_bondpads: 42.949
 geometry.dist_sensorROC_bondpads: 43.051
 
 
-geometry.TFPX_GHCOPIECE.fid_tr: {7.978,-10.975,0}
-geometry.TFPX_GHCOPIECE.fid_br: {7.978,10.975,0}
-geometry.TFPX_GHCOPIECE.fid_bl: {-7.978,10.975,0}
-geometry.TFPX_GHCOPIECE.fid_tl: {-7.978,-10.975,0}
+geometry.TFPX_GHCOPIECE.fid_tr: {7.991,-22.061,0}
+geometry.TFPX_GHCOPIECE.fid_br: {7.991,22.061,0}
+geometry.TFPX_GHCOPIECE.fid_bl: {-7.991,22.061,0}
+geometry.TFPX_GHCOPIECE.fid_tl: {-7.991,-22.061,0}
 
-geometry.PICKER_TOOL.center_offset: {0,0,55.2} #tiny suction cup (55.5)
+geometry.PICKER_TOOL.center_offset: {0,0,54.6} # tripod suction
+#fitCircle output for tripod: (491.98257342034674, 541.4030511985753)
+#geometry.PICKER_TOOL.center_offset: {0,0,55.2} #tiny suction cup (55.5)
 #geometry.PICKER_TOOL.center_offset: {0,0,56.86} #small suction cup
 #geometry.PICKER_TOOL.center_offset: {0,0,59.5} #middle suction cup
 #geometry.PICKER_TOOL.center_offset: {0,0,58} #middle suction cup -1000um
@@ -297,14 +314,38 @@ siteGeometry.pos_croc2x2_TL: {543.809,515.534,99.522}
 siteGeometry.quadROC_bondsToCenter: {9.228,0,0}
 
  # Station 0 data
-siteGeometry.croc2x2_v_translation_STAT_0: {-149.566,0.168,-7.603}
+siteGeometry.croc2x2_v_translation_STAT_0: {-149.566,0.168,-6.366}
 siteGeometry.croc2x2_rot_translation_STAT_0: 0 #REMEASURE
+
+### Quad Sensor ROC Information
+
+ # HDI position data
+
+ # Station 1 data
+siteGeometry.croc2x2_v_translation_STAT_1: {-150.750,-150.769,-6.338} #REMEASURE
+siteGeometry.croc2x2_rot_translation_STAT_1: 0 #REMEASURE
+
+ # Station 2 data
+siteGeometry.croc2x2_v_translation_STAT_2: {-75.965,-150.760,-6.283} #REMEASURE
+siteGeometry.croc2x2_rot_translation_STAT_2: 0 #REMEASURE
+
+ # Station 3 data
+siteGeometry.croc2x2_v_translation_STAT_3: {-1.436,-150.760,-6.063} #REMEASURE
+siteGeometry.croc2x2_rot_translation_STAT_3: 0 #REMEASURE
+
+ # Station 4 data
+siteGeometry.croc2x2_v_translation_STAT_4: {74.254,-148.955,-6.079} #REMEASURE
+siteGeometry.croc2x2_rot_translation_STAT_4: 0 #REMEASURE
+
 
  # Fine Correction for the Quad ROC Script
 siteGeometry.delta_TRROC: {0,0,0}
 siteGeometry.delta_BRROC: {0,0,0}
 siteGeometry.delta_BLROC: {0,0,0}
 siteGeometry.delta_TLROC: {0,0,0}
+
+ # Fine Correction for the Quad Sensor ROC Script
+siteGeometry.delta_QUADSENSORROC: {0,0,0}
 
  # Fine correction for the ROCs to align bond pads with HDI bond pads
 siteGeometry.delta_ROC: {0,0,0} # {width, length, 0}
@@ -387,27 +428,18 @@ graph_motion.pos.tool_rack_pos_1_in: {450.714,16.671,38.190}
 graph_motion.pos.tool_rack_pos_1_out: {450.714,116.671,38.190}
 
 #graph_motion.edge.LABEL1.LABEL2 True/False
-graph_motion.edge.home.tool_rack_pos_2_out: False
-graph_motion.edge.tool_rack_pos_2_out.home: False
 graph_motion.edge.home.safeUnload: True
 graph_motion.edge.safeUnload.tool_rack_pos_2_out: True
 graph_motion.edge.stagingArea.tool_rack_pos_2_out: True
 graph_motion.edge.tool_rack_pos_2_out.tool_rack_pos_2_in: True
-graph_motion.edge.tool_rack_pos_2_out.stagingArea: True
 graph_motion.edge.tool_rack_pos_1_out.tool_rack_pos_1_in: True
 graph_motion.edge.tool_rack_pos_1_out.safeUnload: True
-graph_motion.edge.tool_rack_pos_1_in.home: False
 
 graph_motion.edge.standAside.safeUnload: True
-graph_motion.edge.safeUnload.standAside: True
 graph_motion.edge.standAside.stagingArea: True
-graph_motion.edge.stagingArea.standAside: True
 graph_motion.edge.standAside.tool_rack_pos_2_out: True
-graph_motion.edge.tool_rack_pos_2_out.standAside: True
 graph_motion.edge.home.crocStaging: True
-graph_motion.edge.crocStaging.home: True
 graph_motion.edge.safeUnload.crocStaging: True
-graph_motion.edge.crocStaging.safeUnload: True
 
 #================================================
 #====== Potting procedure parameters
