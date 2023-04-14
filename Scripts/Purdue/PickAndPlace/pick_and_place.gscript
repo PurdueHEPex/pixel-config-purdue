@@ -1,0 +1,255 @@
+VERSION 2.1
+# Steps:
+# 1. Locate Glass Piece
+# 2. Record/Locate target position
+# 3. Pickup and place glass piece
+# 4. Record final position
+LOADCONFIG
+HOME
+SETLOG "LOG_pick_and_place.txt"
+
+COPY $speed 50
+
+COPY $pos_croc2x2_TR {583.628,519.036,99.678}
+COPY $start_pos $pos_croc2x2_TR # CROC 2X2 Launch ROC
+COPY $start_rot 0
+
+# FLEXREAD $croc2x2_v_translation siteGeometry.croc2x2_v_translation_STAT_0
+COPY $end_pos {491.028168,545.221635,93.825000} # CROC 2X2 Station 0
+COPY $end_rot 0
+
+FLEXREAD $dim geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_br
+
+COPY $thickness 0.53
+
+@PROCESS_START COPY $pos $start_pos
+COPY $rot $start_rot
+SETVAC croc2x2_launchROC_tr 1
+SETVAC croc2x2_launchROC_br 1
+SETVAC croc2x2_launchROC_bl 1
+SETVAC croc2x2_launchROC_tl 1
+
+CALL @FINDCORNERS $pos $dim -> $tr $br $bl $tl
+
+FIT $pos_initial $rot_initial TFPX_CROC2X2_QUADTHERMALROC $tr $br $bl $tl
+QUAT2EULER $rot_initial $trash $trash1 $rot_initial
+
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME stagingArea 100
+
+# Pickup Step #
+CALL @CALCPICKUP $pos_initial -> $pos $pos_z0
+#ADD $pos.z $pos.z 0.4
+CALL @PICKUPPART $pos $pos_z0 $rot_initial
+
+CHOICEPOPUP $choice "Did the gantry pick up the Quad Sensor ROC?" "Yes" "No, resurvey"
+GOTOIF @PLACESTEP $choice
+SETVAC gantry_head_inner 0
+ROTATETO 0 10
+MOVENAME tool_rack_pos_2_out 200
+UNLOADTOOL
+GOTO @PROCESS_START
+
+# Place Step
+
+@PLACESTEP PASS
+CALL @CALCPICKUP $end_pos -> $pos $pos_z0
+CALL @PLACEPART $pos $pos_z0 $end_rot
+
+ROTATETO 0 10
+MOVENAME tool_rack_pos_2_out 200
+UNLOADTOOL
+
+COPY $pos {510.050591,524.438872,93.390000}
+COPY $rot $end_rot
+CALL @FINDCORNERS $pos $dim -> $tr $br $bl $tl
+FIT $meas_pos $meas_rot TFPX_CROC2X2_QUADTHERMALROC $tr $br $bl $tl
+QUAT2EULER $meas_rot $trash $trash1 $meas_rot
+
+SUB $delta $end_pos $meas_pos
+PRINT "Position Correction To Add: %v" $delta
+SUB $delta_theta $end_rot $meas_rot
+PRINT "Rotation Correction To Add: %r" $delta_theta
+
+SETVAC croc2x2_chuck_0_tr 0
+SETVAC croc2x2_chuck_0_br 0
+SETVAC croc2x2_chuck_0_bl 0
+SETVAC croc2x2_chuck_0_tl 0
+
+CHOICEPOPUP $choice "Move piece back to launchpad or quit?" "I moved it" "Quit"
+GOTOIF @PROCESS_START $choice
+
+HOME
+END
+
+# SURVEYPOS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYPOS(x_corner)
+  MOVESAFE $x_corner 100
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you correctly align the cursor with the marker?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+
+# FINDCORNERS
+# Arguments:
+# $top_right - rough position of the top-right bond pad
+# $half_bond_dim - vector containing half-width/length between bond pads
+#
+# Returns:
+# $tr - center of top-right bond pad
+# $br - center of bottom-right bond pad
+# $bl - center of bottom-left bond pad
+# $tl - center of top-left bond pad
+@FINDCORNERS(top_right,half_bond_dim)
+  # Obtain full width and length dimensions
+  MUL $bond_dim $half_bond_dim {2,2,0}
+
+  # Find positions of opposite corners of top-right bond pad
+  @FIND_0 CHOICEPOPUP $choice "Ready to find a corner of the top-right bond pad?" "Yes" "No"
+  GOTOIFN @FIND_0 $choice
+  CALL @SURVEYPOS $top_right -> $tr_1
+
+  @FIND_1 CHOICEPOPUP $choice "Ready to find the opposite corner of the top-right bond pad?" "Yes" "No"
+  GOTOIFN @FIND_1 $choice
+  CALL @SURVEYPOS $tr_1 -> $tr_2
+
+  # Obtain rough coordinates for bottom-right bond pad
+  COPY $bot_right $tr_2
+  ADD $bot_right.y $bot_right.y $bond_dim.y
+
+  # Find positions of opposite corners of bottom-right bond pad
+  @FIND_2 CHOICEPOPUP $choice "Ready to find a corner of the bottom-right bond pad?" "Yes" "No"
+  GOTOIFN @FIND_2 $choice
+  CALL @SURVEYPOS $bot_right -> $br_1
+
+  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the bottom-right bond pad?" "Yes" "No"
+  GOTOIFN @FIND_3 $choice
+  CALL @SURVEYPOS $br_1 -> $br_2
+
+  # Obtain rough coordinates for bottom-left bond pad
+  COPY $bot_left $br_2
+  SUB $bot_left.x $bot_left.x $bond_dim.x
+
+  # Find positions of opposite corners of bottom-left bond pad
+  @FIND_4 CHOICEPOPUP $choice "Ready to find a corner of the bottom-left bond pad?" "Yes" "No"
+  GOTOIFN @FIND_4 $choice
+  CALL @SURVEYPOS $bot_left -> $bl_1
+
+  @FIND_5 CHOICEPOPUP $choice "Ready to find the opposite corner of the bottom-left bond pad?" "Yes" "No"
+  GOTOIFN @FIND_5 $choice
+  CALL @SURVEYPOS $bl_1 -> $bl_2
+
+  # Obtain rough coordinates for top-left bond pad
+  COPY $top_left $bl_2
+  SUB $top_left.y $top_left.y $bond_dim.y
+
+  # Find positions of opposite corners of top-left bond pad
+  @FIND_6 CHOICEPOPUP $choice "Ready to find a corner of the top-left bond pad?" "Yes" "No"
+  GOTOIFN @FIND_6 $choice
+  CALL @SURVEYPOS $top_left -> $tl_1
+
+  @FIND_7 CHOICEPOPUP $choice "Ready to find the opposite corner of the top-left bond pad?" "Yes" "No"
+  GOTOIFN @FIND_7 $choice
+  CALL @SURVEYPOS $tl_1 -> $tl_2
+
+  # Average each pair of corner positions
+
+  ADD $tr $tr_1 $tr_2
+  MUL $tr $tr {0.5,0.5,0.5}
+
+  ADD $br $br_1 $br_2
+  MUL $br $br {0.5,0.5,0.5}
+
+  ADD $bl $bl_1 $bl_2
+  MUL $bl $bl {0.5,0.5,0.5}
+
+  ADD $tl $tl_1 $tl_2
+  MUL $tl $tl {0.5,0.5,0.5}
+
+  RETURN $tr $br $bl $tl
+
+
+# CALCPICKUP
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+#  $pickup_pos_z0 - pickup position with z = 0
+@CALCPICKUP(target_pos)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  COPY $pickup_pos_z0 $pickup_pos
+  COPY $pickup_pos_z0.z 0
+  RETURN $pickup_pos $pickup_pos_z0
+
+
+# PICKUPPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of the what is being picked up
+#
+# No Returns
+@PICKUPPART(pick_pos,pick_pos_z0,pick_rot)
+  MOVESAFE $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+
+  # Release LaunchROC vacuums
+  SETVAC croc2x2_launchROC_tr 0
+  SETVAC croc2x2_launchROC_br 0
+  SETVAC croc2x2_launchROC_bl 0
+  SETVAC croc2x2_launchROC_tl 0
+
+  WAIT 2000
+  SUB $pick_pos.z $pick_pos.z 1
+  MOVETO $pick_pos 0.4
+  MOVETO $pick_pos_z0 25
+  RETURN
+
+
+# PLACEPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $place_pos - place position
+#  $place_pos_z0 - place position with z = 0
+#  $place_rot - target rotation for placement
+#
+# No Returns
+@PLACEPART(place_pos,place_pos_z0,place_rot)
+  MOVESAFE $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  WAIT 500
+  SETVAC croc2x2_chuck_0_tr 1
+  SETVAC croc2x2_chuck_0_br 1
+  SETVAC croc2x2_chuck_0_bl 1
+  SETVAC croc2x2_chuck_0_tl 1
+  WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 25
+  RETURN

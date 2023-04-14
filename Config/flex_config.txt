@@ -27,7 +27,7 @@ vacuum.croc_chuck_3: 9
 vacuum.croc_launchHDI: 9
 vacuum.croc_hdipicker: 10
 vacuum.croc_weight_0: 10
-#vacuum.croc2x2_weight_0: 
+vacuum.croc2x2_weight_0: 27
 vacuum.croc2x2_launchHDI: 24
 vacuum.croc2x2_launchROC_tr: 14
 vacuum.croc2x2_launchROC_br: 3
@@ -50,7 +50,7 @@ vacuum.rd53a_chuck_1_TR: 20
 vacuum.rd53a_chuck_1_BL: 21
 vacuum.rd53a_chuck_1_BR: 25
 vacuum.rd53a_chuck_2: 26
-vacuum.rd53a_chuck_3: 27
+# vacuum.rd53a_chuck_3: 27     # REMOVE; Used to be part of RD53A setup
 vacuum.gelpak_release: 16
 vacuum.launchpad: 29
 vacuum.launchpad2_r: 12
@@ -171,16 +171,25 @@ geometry.TFPX_CROC2X2_QUADROC.thickness: 0.808
 geometry.dist_quadHDI_bondpads: 20.15 #REMEASURE
 geometry.dist_quadROC_bondpads: 21.064
 
-geometry.TFPX_CROC2X2_HDI.fid_tr: {17.50,-21.40,0} #REMEASURE
-geometry.TFPX_CROC2X2_HDI.fid_br: {17.50,21.40,0} #REMEASURE
-geometry.TFPX_CROC2X2_HDI.fid_bl: {-17.50,21.40,0} #REMEASURE
-geometry.TFPX_CROC2X2_HDI.fid_tl: {-17.50,-21.40,0} #REMEASURE
+geometry.TFPX_CROC2X2_HDI.fid_tr: {16.703,-21.592,0}
+geometry.TFPX_CROC2X2_HDI.fid_br: {16.703,21.592,0}
+geometry.TFPX_CROC2X2_HDI.fid_bl: {-16.703,21.592,0}
+geometry.TFPX_CROC2X2_HDI.fid_tl: {-16.703,-21.592,0}
+
+geometry.TFPX_CROC2X2_QUADROC.fid_tr: {9.304,-10.820,0}
+geometry.TFPX_CROC2X2_QUADROC.fid_br: {9.304,10.820,0}
+geometry.TFPX_CROC2X2_QUADROC.fid_bl: {-9.304,10.820,0}
+geometry.TFPX_CROC2X2_QUADROC.fid_tl: {-9.304,-10.820,0}
 
 geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tr: {18.795,-22.265,0} #REMEASURE
 geometry.TFPX_CROC2X2_QUADSENSORROC.fid_br: {18.795,22.265,0} #REMEASURE
 geometry.TFPX_CROC2X2_QUADSENSORROC.fid_bl: {-18.795,22.265,0} #REMEASURE
 geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tl: {-18.795,-22.265,0} #REMEASURE
 
+geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_tr: {19.025, -20.784,0}
+geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_br: {19.025, 20.784,0}
+geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_bl: {-19.025, 20.784,0}
+geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_tl: {-19.025, -20.784,0}
 
 # geometry.TFPX_CROC_SENSORROC.thickness: 0.715
 # geometry.TFPX_CROC_SENSOR.thickness: 0.225
@@ -195,7 +204,7 @@ geometry.TFPX_GHCOPIECE.fid_br: {7.991,22.061,0}
 geometry.TFPX_GHCOPIECE.fid_bl: {-7.991,22.061,0}
 geometry.TFPX_GHCOPIECE.fid_tl: {-7.991,-22.061,0}
 
-geometry.PICKER_TOOL.center_offset: {0,0,54.6} # tripod suction
+geometry.PICKER_TOOL.center_offset: {0,0,55.0} # tripod suction (original: 0.014, 0.011, 54.6)
 #fitCircle output for tripod: (491.98257342034674, 541.4030511985753)
 #geometry.PICKER_TOOL.center_offset: {0,0,55.2} #tiny suction cup (55.5)
 #geometry.PICKER_TOOL.center_offset: {0,0,56.86} #small suction cup
@@ -299,23 +308,20 @@ siteGeometry.rot_ROC_error: 0
 ### QuadROC Information
 
  # HDI position data
-siteGeometry.pos_croc2x2_hdi_TR: {658.564,527.066,99.447} #REMEASURE WITH HDI
-siteGeometry.pos_croc2x2_hdi_BR: {658.330,549.579,99.447} #REMEASURE WITH HDI
-siteGeometry.pos_croc2x2_hdi_BL: {623.367,550.101,99.447} #REMEASURE WITH HDI
-siteGeometry.pos_croc2x2_hdi_TL: {622.653,528.045,99.447} #REMEASURE WITH HDI
+siteGeometry.pos_croc2x2_hdi_TR: {656.953,523.054,100.077}
 
  # QuadROC position data
-siteGeometry.pos_croc2x2_TR: {583.619,516.583,99.547}
-siteGeometry.pos_croc2x2_BR: {583.613,540.641,99.517}
-siteGeometry.pos_croc2x2_BL: {543.271,540.489,99.487}
-siteGeometry.pos_croc2x2_TL: {543.809,515.534,99.522}
+siteGeometry.pos_croc2x2LaunchROC_TR: {583.123824,516.408419,99.509999}
+siteGeometry.pos_croc2x2LaunchROC_BR: {583.399690,540.026369,99.504998}
+siteGeometry.pos_croc2x2LaunchROC_BL: {562.377720,540.084914,99.490000}
+siteGeometry.pos_croc2x2LaunchROC_TL: {562.775617,516.425142,99.490000}
 
- # Vector from center of the bond pads on the Sensor ROC to its center
+ # Vector from midpoint of bondpad edge to 
 siteGeometry.quadROC_bondsToCenter: {9.228,0,0}
 
  # Station 0 data
-siteGeometry.croc2x2_v_translation_STAT_0: {-149.566,0.168,-6.366}
-siteGeometry.croc2x2_rot_translation_STAT_0: 0 #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_0: {-149.632,-0.551,-7.408} #REMEASURE
+siteGeometry.rot_croc2x2_translation_STAT_0: -0.125254 #REMEASURE
 
 ### Quad Sensor ROC Information
 
@@ -339,10 +345,10 @@ siteGeometry.croc2x2_rot_translation_STAT_4: 0 #REMEASURE
 
 
  # Fine Correction for the Quad ROC Script
-siteGeometry.delta_TRROC: {0,0,0}
-siteGeometry.delta_BRROC: {0,0,0}
-siteGeometry.delta_BLROC: {0,0,0}
-siteGeometry.delta_TLROC: {0,0,0}
+siteGeometry.delta_croc2x2_tr: {0,0,0}
+siteGeometry.delta_croc2x2_br: {0,0,0}
+siteGeometry.delta_croc2x2_bl: {0,0,0}
+siteGeometry.delta_croc2x2_tl: {0,0,0}
 
  # Fine Correction for the Quad Sensor ROC Script
 siteGeometry.delta_QUADSENSORROC: {0,0,0}
