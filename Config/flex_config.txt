@@ -166,10 +166,10 @@ geometry.TFPX_CROC_DUALROC.thickness: 0.808
 geometry.dist_dualHDI_bondpads: 21.216 #mm
 geometry.dist_dualROC_bondpads: 21.064 #mm
 
-geometry.TFPX_CROC2X2_HDI.thickness: 0.600 #REMEASURE
+geometry.TFPX_CROC2X2_HDI.thickness: 0.140
 geometry.TFPX_CROC2X2_QUADROC.thickness: 0.808 
-geometry.dist_quadHDI_bondpads: 20.15 #REMEASURE
-geometry.dist_quadROC_bondpads: 21.064
+geometry.dist_quadHDI_bondpads: 0.27 #REMEASURE
+geometry.dist_quadROC_bondpads: 21.064 #REMEASURE
 
 geometry.TFPX_CROC2X2_HDI.fid_tr: {16.703,-21.592,0}
 geometry.TFPX_CROC2X2_HDI.fid_br: {16.703,21.592,0}
@@ -212,16 +212,17 @@ geometry.PICKER_TOOL.center_offset: {0,0,55.0} # tripod suction (original: 0.014
 #geometry.PICKER_TOOL.center_offset: {0,0,58} #middle suction cup -1000um
 #geometry.PICKER_TOOL.center_to_suction: {0,11.084,0} #center of picker tool to top suction cup
 
-#geometry.CUA_PICKER_TOOL.center_offset: {0,0,54.6}
-
 # The offset between the camera and the
 # center-of-rotation of the gantry head in x-y
 # and the bottom surface of the tool-holder in z
 # geometry.tool_holder_offset: {0.909,-103,-23.5} # CUA deliberate mistake
 geometry.tool_holder_offset: {-0.188,-101.813,-23.5} # After GHCO fine calibration
 
-# Site Geometry
+#================================================
+#====== Site Geometry Definitions
+#================================================
 # These are geometrical parameters, like the positions of chucks, specific to a site
+
  # Positions of HDI on Chuck 2
 siteGeometry.pos_chuck2_tr: {460.304953,528.517400,100.369}
 siteGeometry.pos_chuck2_br: {460.527474,568.197413,100.389}
@@ -291,8 +292,6 @@ siteGeometry.delta_SEN_CROC: {0,0,0}
   # Vector from center of the bond pads on the Sensor ROC to its center
 siteGeometry.sensorROC_bondsToCenter: {10.098646,0,0}
 
-
-
  # HDI pick and place translation vector and rotation angle
 siteGeometry.v_hdi_translation: {-49.833,0.065,-6.350}
 siteGeometry.rot_hdi_translation: -0.026
@@ -320,7 +319,7 @@ siteGeometry.pos_croc2x2LaunchROC_TL: {562.775617,516.425142,99.490000}
 siteGeometry.quadROC_bondsToCenter: {9.228,0,0}
 
  # Station 0 data
-siteGeometry.pos_croc2x2_translation_STAT_0: {-149.632,-0.551,-7.408} #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_0: {-149.632,-0.551,-6.800} #REMEASURE
 siteGeometry.rot_croc2x2_translation_STAT_0: -0.125254 #REMEASURE
 
 ### Quad Sensor ROC Information
@@ -345,10 +344,10 @@ siteGeometry.croc2x2_rot_translation_STAT_4: 0 #REMEASURE
 
 
  # Fine Correction for the Quad ROC Script
-siteGeometry.delta_croc2x2_tr: {0,0,0}
-siteGeometry.delta_croc2x2_br: {0,0,0}
-siteGeometry.delta_croc2x2_bl: {0,0,0}
-siteGeometry.delta_croc2x2_tl: {0,0,0}
+siteGeometry.delta_croc2x2_tr: {0.06,0.1,0}
+siteGeometry.delta_croc2x2_br: {0.06,0.1,0}
+siteGeometry.delta_croc2x2_bl: {0.06,0.1,0}
+siteGeometry.delta_croc2x2_tl: {0.06,0.1,0}
 
  # Fine Correction for the Quad Sensor ROC Script
 siteGeometry.delta_QUADSENSORROC: {0,0,0}

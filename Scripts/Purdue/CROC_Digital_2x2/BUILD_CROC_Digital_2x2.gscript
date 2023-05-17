@@ -1,0 +1,478 @@
+VERSION v2.1
+######################## BUILD Assembly CROC-Digital 2x2 #############################
+# Jaiveer Dutta, jsdutta@purdue.edu
+# Mahimna Vyas, mvyas@purdue.edu
+# Souvik Das, souvik@purdue.edu
+# Purdue University Department of Physics and Astronomy
+# April 2023
+# -----------------------------------------------------
+# Steps:
+# 1. Prompt placement of HDI on LaunchHDI and turn on the HDI's vacuum
+# 2. Move the gantry to the HDI for surveillance
+# 3. Compute would-be position and rotation of HDI on Chuck 0
+# 4. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
+# 5. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
+#    i.   Pull vacuum on gelpack
+#    ii.  Is the end placement location clear?
+#    iii. Is the Pickup Tool ready?
+# 6. Survey the 4 CROCs on LaunchROC. Their initial positions and rotations will be calculated.
+# 7. Pick up the CROCs and place them on Chuck 0 positions computed in Step 4
+# 8. Prompt placement of weight tool on the HDI and switch on the vacuum
+# 9. Check that the HDI was moved and the adhesive was applied
+# 10. Prompt placement of Weight Tool bearing HDI onto the ROCs
+# 11. Export the variables
+# 12. End program with vacuums on or off
+
+
+#Initialize the system
+LOADCONFIG
+HOME
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc2x2_launchROC_tr 0
+SETVAC croc2x2_launchROC_br 0
+SETVAC croc2x2_launchROC_bl 0
+SETVAC croc2x2_launchROC_tl 0
+SETVAC croc2x2_launchHDI 0
+SETVAC croc2x2_chuck_0_tr 0
+SETVAC croc2x2_chuck_0_br 0
+SETVAC croc2x2_chuck_0_bl 0
+SETVAC croc2x2_chuck_0_tl 0
+SETLOG "LOG_BUILD_CROC_Digital_2x2.txt"
+SETERRORMODE prompt
+
+# Rough position of the top-right bond pad on the CROC HDI (LaunchHDI)
+FLEXREAD $pos_croc2x2_hdi_TR siteGeometry.pos_croc2x2_hdi_TR
+FLEXREAD $dim_croc2x2_hdi geometry.TFPX_CROC2X2_HDI.fid_br
+MUL $dim_croc2x2_hdi $dim_croc2x2_hdi {2,2,0}
+
+# Rough position of the top right corners of the four CROCs (LaunchROC)
+FLEXREAD $pos_croc2x2LaunchROC_TR siteGeometry.pos_croc2x2LaunchROC_TR
+FLEXREAD $pos_croc2x2LaunchROC_BR siteGeometry.pos_croc2x2LaunchROC_BR
+FLEXREAD $pos_croc2x2LaunchROC_BL siteGeometry.pos_croc2x2LaunchROC_BL
+FLEXREAD $pos_croc2x2LaunchROC_TL siteGeometry.pos_croc2x2LaunchROC_TL
+FLEXREAD $dim_croc2x2_croc geometry.TFPX_CROC2X2_QUADROC.fid_br
+
+# Read translation vector and rotation from flex_config
+FLEXREAD $pos_translation siteGeometry.pos_croc2x2_translation_STAT_0
+FLEXREAD $rot_translation siteGeometry.rot_croc2x2_translation_STAT_0
+
+# Parameters that can help line up the bond pads
+FLEXREAD $delta_tr siteGeometry.delta_croc2x2_tr
+FLEXREAD $delta_br siteGeometry.delta_croc2x2_br
+FLEXREAD $delta_bl siteGeometry.delta_croc2x2_bl
+FLEXREAD $delta_tl siteGeometry.delta_croc2x2_tl
+
+# Step 1. Prompt placement of HDI and turn on the HDI's vacuum
+PRINT "--------------------------"
+@STEP_ONE CHOICEPOPUP $choice "Have you placed the CROC 2x2 HDI in its correct starting location?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ONE $choice
+SETVAC croc2x2_launchHDI 1
+
+# Step 2. Move the gantry to the HDI for surveillance
+@STEP_TWO PASS
+@HDI_0 CHOICEPOPUP $choice "Ready to find the top-right corner of the HDI's top-right bond pad?" "Yes" "No"
+GOTOIFN @HDI_0 $choice
+CALL @SURVEYPOS $pos_croc2x2_hdi_TR -> $pos_croc2x2_hdi_TR
+
+ADD $pos_croc2x2_hdi_BR $pos_croc2x2_hdi_TR {0,$dim_croc2x2_hdi.y,0}
+@HDI_1 CHOICEPOPUP $choice "Ready to find the bottom-right corner of the HDI's bottom-right bond pad?" "Yes" "No"
+GOTOIFN @HDI_1 $choice
+CALL @SURVEYPOS $pos_croc2x2_hdi_BR -> $pos_croc2x2_hdi_BR
+
+SUB $pos_croc2x2_hdi_BL $pos_croc2x2_hdi_BR {$dim_croc2x2_hdi.x,0,0}
+@HDI_2 CHOICEPOPUP $choice "Ready to find the bottom-left corner of the HDI's bottom-left bond pad?" "Yes" "No"
+GOTOIFN @HDI_2 $choice
+CALL @SURVEYPOS $pos_croc2x2_hdi_BL -> $pos_croc2x2_hdi_BL
+
+SUB $pos_croc2x2_hdi_TL $pos_croc2x2_hdi_BL {0,$dim_croc2x2_hdi.y,0}
+@HDI_3 CHOICEPOPUP $choice "Ready to find the top-left corner of the HDI's top-left bond pad?" "Yes" "No"
+GOTOIFN @HDI_3 $choice
+CALL @SURVEYPOS $pos_croc2x2_hdi_TL -> $pos_croc2x2_hdi_TL
+
+# Step 3. Compute would-be position and rotation of HDI on Chuck 0
+@STEP_THREE PASS
+FIT $pos_croc2x2_hdi_initial $rot_croc2x2_hdi_initial TFPX_CROC2X2_HDI $pos_croc2x2_hdi_TR $pos_croc2x2_hdi_BR $pos_croc2x2_hdi_BL $pos_croc2x2_hdi_TL
+ADD $pos_croc2x2_hdi_final $pos_croc2x2_hdi_initial $pos_translation
+QUAT2EULER $rot_croc2x2_hdi_initial $trash $trash1 $rot_croc2x2_hdi_initial
+ADD $rot_croc2x2_hdi_final $rot_croc2x2_hdi_initial $rot_translation
+
+# Step 4. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
+@STEP_FOUR PASS
+COS $cos_rot_hdi $rot_croc2x2_hdi_final
+SIN $sin_rot_hdi $rot_croc2x2_hdi_final
+
+#TR
+ADD $half_len_ROC_tr $dim_croc2x2_croc.y $delta_tr.x
+ADD $half_wid_ROC_tr $dim_croc2x2_croc.x $delta_tr.y
+MUL $half_len_cos_tr $half_len_ROC_tr $cos_rot_hdi
+MUL $half_wid_sin_tr $half_wid_ROC_tr $sin_rot_hdi
+MUL $half_len_sin_tr $half_len_ROC_tr $sin_rot_hdi
+MUL $half_wid_cos_tr $half_wid_ROC_tr $cos_rot_hdi
+
+ADD $delta_x $half_len_sin_tr $half_wid_cos_tr
+SUB $delta_y $half_wid_sin_tr $half_len_cos_tr
+ADD $pos_TR_ROC_final $pos_croc2x2_hdi_final {$delta_x,$delta_y,0}
+
+#BR
+ADD $half_len_ROC_br $dim_croc2x2_croc.y $delta_br.x
+ADD $half_wid_ROC_br $dim_croc2x2_croc.x $delta_br.y
+MUL $half_len_cos_br $half_len_ROC_br $cos_rot_hdi
+MUL $half_wid_sin_br $half_wid_ROC_br $sin_rot_hdi
+MUL $half_len_sin_br $half_len_ROC_br $sin_rot_hdi
+MUL $half_wid_cos_br $half_wid_ROC_br $cos_rot_hdi
+
+SUB $delta_x $half_wid_cos_br $half_len_sin_br
+ADD $delta_y $half_wid_sin_br $half_len_cos_br
+ADD $pos_BR_ROC_final $pos_croc2x2_hdi_final {$delta_x,$delta_y,0}
+
+#BL
+ADD $half_len_ROC_bl $dim_croc2x2_croc.y $delta_bl.x
+ADD $half_wid_ROC_bl $dim_croc2x2_croc.x $delta_tr.y
+MUL $half_len_cos_bl $half_len_ROC_bl $cos_rot_hdi
+MUL $half_wid_sin_bl $half_wid_ROC_bl $sin_rot_hdi
+MUL $half_len_sin_bl $half_len_ROC_bl $sin_rot_hdi
+MUL $half_wid_cos_bl $half_wid_ROC_bl $cos_rot_hdi
+
+ADD $delta_x $half_len_sin_bl $half_wid_cos_bl
+SUB $negDelta_x 0 $delta_x
+SUB $delta_y $half_len_cos_bl $half_wid_sin_bl
+ADD $pos_BL_ROC_final $pos_croc2x2_hdi_final {$negDelta_x,$delta_y,0}
+
+#TL
+ADD $half_len_ROC_tl $dim_croc2x2_croc.y $delta_tl.x
+ADD $half_wid_ROC_tl $dim_croc2x2_croc.x $delta_tl.y
+MUL $half_len_cos_tl $half_len_ROC_tl $cos_rot_hdi
+MUL $half_wid_sin_tl $half_wid_ROC_tl $sin_rot_hdi
+MUL $half_len_sin_tl $half_len_ROC_tl $sin_rot_hdi
+MUL $half_wid_cos_tl $half_wid_ROC_tl $cos_rot_hdi
+
+SUB $delta_x $half_len_sin_tl $half_wid_cos_tl
+ADD $delta_y $half_wid_sin_tl $half_len_cos_tl
+SUB $negDelta_y 0 $delta_y
+ADD $pos_TL_ROC_final $pos_croc2x2_hdi_final {$delta_x,$negDelta_y,0}
+
+#Copying the z-components
+COPY $pos_TL_ROC_final.z $pos_croc2x2_hdi_final.z
+COPY $pos_BR_ROC_final.z $pos_croc2x2_hdi_final.z
+COPY $pos_BL_ROC_final.z $pos_croc2x2_hdi_final.z
+COPY $pos_TR_ROC_final.z $pos_croc2x2_hdi_final.z
+
+# Step 5. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
+@STEP_FIVE CHOICEPOPUP $choice "Have you placed the gelpack on the gelpack release station?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE $choice
+SETVAC gelpak_release 1
+
+  #i. Are the ROCs placed on the launchpad?
+@STEP_FIVE_i CHOICEPOPUP $choice "Have you placed the four ROCs on the Launchpad?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_i $choice
+SETVAC gelpak_release 0
+SETVAC croc2x2_launchROC_tr 1
+SETVAC croc2x2_launchROC_br 1
+SETVAC croc2x2_launchROC_bl 1
+SETVAC croc2x2_launchROC_tl 1
+
+  #ii. Is the end placement location cleared?
+@STEP_FIVE_ii CHOICEPOPUP $choice "Is Chuck 0 clear?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_ii $choice
+
+  #iii. Is the Weight Tool ready?
+@STEP_FIVE_iii CHOICEPOPUP $choice "Is the Station 0 Weight Tool ready?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_iii $choice
+
+# Step 6. Survey the four ROCs
+@STEP_SIX PASS
+MUL $len $dim_croc2x2_croc.y 2
+MUL $wid $dim_croc2x2_croc.x 2
+
+@CROC_TR CHOICEPOPUP $choice "Ready to survey the Top Right ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC_TR $choice
+CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_TR $len $wid -> $pos_TR_ROC_initial $rot_TR_ROC_initial
+
+@CROC_BR CHOICEPOPUP $choice "Ready to survey the Bottom Right ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC_BR $choice
+CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_BR $len $wid -> $pos_BR_ROC_initial $rot_BR_ROC_initial
+
+@CROC_BL CHOICEPOPUP $choice "Ready to survey the Bottom Left ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC_BL $choice
+CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_BL $len $wid -> $pos_BL_ROC_initial $rot_BL_ROC_initial
+
+@CROC_TL CHOICEPOPUP $choice "Ready to survey the Top Left ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC_TL $choice
+CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_TL $len $wid -> $pos_TL_ROC_initial $rot_TL_ROC_initial
+
+# Step 7. Pick up the four ROCs and place them on Chuck 0 at positions computed in Step 4
+@STEP_SEVEN PASS
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME stagingArea
+
+####################
+  # Pickup Step TR #
+CALL @CALCPICKUP_4ROC $pos_TR_ROC_initial $rot_TR_ROC_initial -> $pos $pos_z0
+CALL @PICKUPSTEP $pos $pos_z0 $rot_TR_ROC_initial 0
+
+  # Place Step TR
+CALL @CALCPICKUP_4ROC $pos_TR_ROC_final $rot_croc2x2_hdi_final -> $pos $pos_z0
+CALL @PLACESTEP $pos $pos_z0 $rot_croc2x2_hdi_final 0
+
+####################
+  # Pickup Step BR #
+CALL @CALCPICKUP_4ROC $pos_BR_ROC_initial $rot_BR_ROC_initial -> $pos $pos_z0
+CALL @PICKUPSTEP $pos $pos_z0 $rot_BR_ROC_initial 1
+
+  # Place Step BR
+CALL @CALCPICKUP_4ROC $pos_BR_ROC_final $rot_croc2x2_hdi_final -> $pos $pos_z0
+CALL @PLACESTEP $pos $pos_z0 $rot_croc2x2_hdi_final 1
+
+####################
+  # Pickup Step BL #
+CALL @CALCPICKUP_4ROC $pos_BL_ROC_initial $rot_BL_ROC_initial -> $pos $pos_z0
+CALL @PICKUPSTEP $pos $pos_z0 $rot_BL_ROC_initial 2
+
+  # Place Step BL
+CALL @CALCPICKUP_4ROC $pos_BL_ROC_final $rot_croc2x2_hdi_final -> $pos $pos_z0
+CALL @PLACESTEP $pos $pos_z0 $rot_croc2x2_hdi_final 2
+
+####################
+  # Pickup Step TL #
+CALL @CALCPICKUP_4ROC $pos_TL_ROC_initial $rot_TL_ROC_initial -> $pos $pos_z0
+CALL @PICKUPSTEP $pos $pos_z0 $rot_TL_ROC_initial 3
+
+  # Place Step TL
+CALL @CALCPICKUP_4ROC $pos_TL_ROC_final $rot_croc2x2_hdi_final -> $pos $pos_z0
+CALL @PLACESTEP $pos $pos_z0 $rot_croc2x2_hdi_final 3
+
+ROTATETO 0 10
+MOVENAME tool_rack_pos_2_out 100
+UNLOADTOOL
+
+# Step 8. Prompt placement of weight tool on the HDI and switch on the vacuum
+@STEP_EIGHT CHOICEPOPUP $choice "Have you placed Weight Tool 0 on the HDI Launchpad such that it lays flat against the HDI?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_EIGHT $choice
+SETVAC croc2x2_weight_0 1
+WAIT 1000
+SETVAC croc2x2_launchHDI 0
+
+
+# Step 9. Check that HDI was moved to the weight tool Launchpad and the adhesive was applied
+@STEP_NINE CHOICEPOPUP $choice "Did you move the HDI to the Weight Tool Launchpad and apply the adhesive?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_NINE $choice
+
+
+# Step 10. Prompt placement of Weight Tool bearing HDI on Chuck 0
+@STEP_TEN CHOICEPOPUP $choice "Did you place the HDI on the four CROCs on Chuck 0 (With adhesive between them)?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TEN $choice
+
+# Step 11. Export the variables
+@STEP_ELEVEN PASS
+CALL @EXPORTVARS $pos_TR_ROC_final $pos_BR_ROC_final $pos_BL_ROC_final $pos_TL_ROC_final $pos_croc2x2_hdi_final $rot_croc2x2_hdi_final 0
+
+# Step 12. End program with vacuums on or off
+@STEP_TWELVE PASS
+CHOICEPOPUP $choice "Do you want to leave the vacuums on?" "Yes, Leave them on" "No, Turn them off"
+GOTOIF @STEP_END $choice
+
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc2x2_launchROC_tr 0
+SETVAC croc2x2_launchROC_br 0
+SETVAC croc2x2_launchROC_bl 0
+SETVAC croc2x2_launchROC_tl 0
+SETVAC croc2x2_launchHDI 0
+SETVAC croc2x2_chuck_0_tr 0
+SETVAC croc2x2_chuck_0_br 0
+SETVAC croc2x2_chuck_0_bl 0
+SETVAC croc2x2_chuck_0_tl 0
+SETVAC gelpak_release 0
+SETVAC croc2x2_weight_0 0
+
+@STEP_END HOME
+
+END
+
+
+# SURVEYPOS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYPOS(x_corner)
+  MOVESAFE $x_corner 100
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you correctly align the cursor with the marker?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+#FINDROCCENTERS
+# Arguments:
+#  $tr - approximate position of the top right corner
+#  $len - length of what is being surveyed
+#  $wid - wid of what is being surveye
+#
+# Returns:
+#  $position - calculated position of the center based on the corners
+#  $rotation - calculated rotation based on the corners
+@FINDROCCENTERS(tr,len,wid)
+  MOVESAFE $tr 100
+  @ROC_0 CHOICEPOPUP $choice "Ready to find the Top Right marker?" "Yes" "No"
+  GOTOIFN @ROC_0 $choice
+  CALL @SURVEYPOS $tr -> $tr
+
+  COPY $br $tr
+  ADD $br.y $tr.y $len
+  @ROC_1 CHOICEPOPUP $choice "Ready to find the Bottom Right marker?" "Yes" "No"
+  GOTOIFN @ROC_1 $choice
+  CALL @SURVEYPOS $br -> $br
+
+  COPY $bl $br
+  SUB $bl.x $bl.x $wid
+  @ROC_2 CHOICEPOPUP $choice "Ready to find the Bottom Left marker?" "Yes" "No"
+  GOTOIFN @ROC_2 $choice
+  CALL @SURVEYPOS $bl -> $bl
+
+  COPY $tl $tr
+  SUB $tl.x $tl.x $wid
+  @ROC_3 CHOICEPOPUP $choice "Ready to find the Top Left marker?" "Yes" "No"
+  GOTOIFN @ROC_3 $choice
+  CALL @SURVEYPOS $tl -> $tl
+
+  # Calculate the orientation of the ROC
+  FIT $position $rotation TFPX_RD53AQUARTERROC $tr $br $bl $tl
+
+  QUAT2EULER $rotation $trash0 $trash1 $rotation
+
+  PRINT "ROC"
+  PRINT "Rot: %f Center: %v" $rotation $position
+  PRINT ""
+
+  CHOICEPOPUP $choice "Are angles and positions reasonable (See console)?" "Yes, continue" "No"
+  GOTOIF @ANGLE_CHECK_2 $choice
+  END
+  @ANGLE_CHECK_2
+  RETURN $position $rotation
+
+# CALCPICKUP_4ROC
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#  $target_rot - rotation of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+#  $pickup_pos_z0 - pickup position with z = 0
+@CALCPICKUP_4ROC(target_pos,target_rot)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  COPY $pickup_pos_z0 $pickup_pos
+  COPY $pickup_pos_z0.z 0
+  RETURN $pickup_pos $pickup_pos_z0
+
+
+# PICKUPSTEP
+# takes place directly after CALCPICKUP_4ROC
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of what is being picked up
+#  $location - integer representing vacuum position on launchROC (0 - tr, 1 - br, 2 - bl, 3 - tl)
+#
+# No Returns
+@PICKUPSTEP(pick_pos,pick_pos_z0,pick_rot,location)
+  MOVETO $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+
+  GOTOIF @LAUNCHROC_TR `$location==0`
+  GOTOIF @LAUNCHROC_BR `$location==1`
+  GOTOIF @LAUNCHROC_BL `$location==2`
+  SETVAC croc2x2_launchROC_tl 0
+  GOTO @ENDVAC_PICKUP
+  @LAUNCHROC_TR SETVAC croc2x2_launchROC_tr 0
+  GOTO @ENDVAC_PICKUP
+  @LAUNCHROC_BR SETVAC croc2x2_launchROC_br 0
+  GOTO @ENDVAC_PICKUP
+  @LAUNCHROC_BL SETVAC croc2x2_launchROC_bl 0
+  @ENDVAC_PICKUP
+
+  WAIT 1000
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  MOVETO $pick_pos_z0 50
+  RETURN
+
+
+# PLACESTEP
+# takes place directly after CALCPICKUP_4ROC
+# Arguments:
+#  $place_pos - pickup position
+#  $place_pos_z0 - pickup position with z = 0
+#  $place_rot - rotation of the what is being picked up
+#  $location - integer representing vacuum position on launchROC (0 - tr, 1 - br, 2 - bl, 3 - tl)
+#
+# No Returns
+@PLACESTEP(place_pos,place_pos_z0,place_rot,location)
+  MOVETO $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  WAIT 500
+
+  GOTOIF @CHUCK_0_TR `$location==0`
+  GOTOIF @CHUCK_0_BR `$location==1`
+  GOTOIF @CHUCK_0_BL `$location==2`
+  SETVAC croc2x2_chuck_0_tl 1
+  GOTO @ENDVAC_PLACE
+  @CHUCK_0_TR SETVAC croc2x2_chuck_0_tr 1
+  GOTO @ENDVAC_PLACE
+  @CHUCK_0_BR SETVAC croc2x2_chuck_0_br 1
+  GOTO @ENDVAC_PLACE
+  @CHUCK_0_BL SETVAC croc2x2_chuck_0_bl 1
+  @ENDVAC_PLACE
+
+  WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 50
+  RETURN
+
+# EXPORTVARS
+# The goal is to pass all variables necessary for surveillance
+# Arguments:
+#  $tr_quadROC_pos - center position of top-right ROC
+#  $br_quadROC_pos - center position of bottom-right ROC
+#  $bl_quadROC_pos - center position of bottom-left ROC
+#  $tl_quadROC_pos - center position of top-left ROC
+#  $hdi_pos - center position of HDI
+#  $hdi_rot - rotation of HDI
+#  $stat_num - station number
+#
+# No returns
+@EXPORTVARS(tr_quadROC_pos,br_quadROC_pos,bl_quadROC_pos,tl_quadROC_pos,hdi_pos,hdi_rot,stat_num)
+  SETLOG "CROC2X2_QUADROC_output_station_{$stat_num}.txt"
+  CLEARLOG
+  PRINT ""
+    #ROC position data
+  XPRINT "quad.pos_TR_ROC_center: %v" $tr_quadROC_pos
+  XPRINT "quad.pos_BR_ROC_center: %v" $br_quadROC_pos
+  XPRINT "quad.pos_BL_ROC_center: %v" $bl_quadROC_pos
+  XPRINT "quad.pos_TL_ROC_center: %v" $tl_quadROC_pos
+    #HDI position data
+  XPRINT "quad.pos_hdi_final: %v" $hdi_pos
+    #Rotational data
+  XPRINT "quad.rot_hdi_final: %f" $hdi_rot
+  PRINT""
+  RETURN
