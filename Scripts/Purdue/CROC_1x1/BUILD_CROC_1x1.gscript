@@ -1,0 +1,290 @@
+VERSION v2.1
+######################## BUILD_CROC_1x1 #############################
+# Souvik Das, souvik@purdue.edu
+# Purdue University Department of Physics and Astronomy
+# June 2023
+# -----------------------------------------------------
+# Steps:
+# 1. Prompt placement of Al plate on LaunchROC and turn on vacuum
+# 2. Survey the Al plate and determine its center and rotation
+# 3. Pick and place the Al plate on Chuck 0
+# 4. Prompt placement of CROC on LaunchROC and turn on vacuum
+# 5. Survey the CROC and determine its center and rotation
+# 6. Pick and place the CROC on top of the Al plate on Chuck 0
+
+# Initialize the system
+LOADCONFIG
+HOME
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_chuck_0_top 0
+SETVAC croc_chuck_0_bot 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETLOG "LOG_BUILD_CROC_1x1.txt"
+SETERRORMODE prompt
+
+# Dimensions of the Al plate and CROC
+COPY $dim_AlPlate {22.00,41.35,0.50}   # mm
+COPY $dim_CROC {18.60,21.64,0.79}     # mm
+
+# Approximate positions of the Al plate and CROC
+COPY $pos_AlPlate_source_1 {108.284,533.209,100.487} # mm
+COPY $pos_AlPlate_source_2 {108.066,569.705,100.487} # mm
+COPY $pos_AlPlate_source_3 {127.240,572.156,100.487} # mm
+COPY $pos_CROC_source {130.526,522.809,99.844} # mm
+
+# Target positions of Al plate and CROC on Chuck 0
+COPY $pos_center_Al_target {70.513,545.156,93.580} # mm
+COPY $pos_CROC_target {70.513,545.156,92.789} # mm
+
+# Step 1. Prompt placement of Al plate on LaunchROC and turn on vacuum
+@STEP_ONE CHOICEPOPUP $choice "Have you placed the Al plate on the LaunchROC?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ONE $choice
+SETVAC croc_launchROC_top 1
+SETVAC croc_launchROC_bot 1
+
+# Step 2. Survey the Al plate and determine its center and rotation
+@STEP_TWO PASS
+@STEP_TWO_Q1 CHOICEPOPUP $choice "Ready to survey any point on left straight edge of the Al plate?"
+GOTOIFN @STEP_TWO_Q1 $choice
+CALL @SURVEYPOS $pos_AlPlate_source_1 -> $pos_AlPlate_source_1
+@STEP_TWO_Q2 CHOICEPOPUP $choice "Ready to survey another sufficiently separated point on left straight edge of the Al plate?"
+GOTOIFN @STEP_TWO_Q2 $choice
+CALL @SURVEYPOS $pos_AlPlate_source_2 -> $pos_AlPlate_source_2
+@STEP_TWO_Q3 CHOICEPOPUP $choice "Ready to survey any point on near straight edge of the Al plate?"
+GOTOIFN @STEP_TWO_Q3 $choice
+CALL @SURVEYPOS $pos_AlPlate_source_3 -> $pos_AlPlate_source_3
+
+# Calculate slope of the left straight edge
+SUB $numer_Al_source_L $pos_AlPlate_source_2.y $pos_AlPlate_source_1.y
+SUB $denom_Al_source_L $pos_AlPlate_source_2.x $pos_AlPlate_source_1.x
+ATAN2 $theta $denom_Al_source_L $numer_Al_source_L
+INVERT $slope_Al_source_L $denom_Al_source_L
+MUL $slope_Al_source_L $slope_Al_source_L $numer_Al_source_L               # Answer
+# Calculate intercept of the left straight edge
+MUL $intercept_Al_source_L $slope_Al_source_L $pos_AlPlate_source_1.x
+SUB $intercept_Al_source_L $pos_AlPlate_source_1.y $intercept_Al_source_L  # Answer
+# Calculate the slope of the near edge
+INVERT $slope_Al_source_N $slope_Al_source_L
+MUL $slope_Al_source_N $slope_Al_source_N -1                               # Answer
+# Calculate the intercept of the near edge
+MUL $intercept_Al_source_N $slope_Al_source_N $pos_AlPlate_source_3.x
+SUB $intercept_Al_source_N $pos_AlPlate_source_3.y $intercept_Al_source_N  # Answer
+# Calculate intersection point between the two edges
+SUB $inv_m2_minus_m1 $slope_Al_source_L $slope_Al_source_N
+INVERT $inv_m2_minus_m1 $inv_m2_minus_m1
+SUB $x_intersection $intercept_Al_source_N $intercept_Al_source_L
+MUL $x_intersection $x_intersection $inv_m2_minus_m1                       # Answer
+MUL $c1m2 $intercept_Al_source_N $slope_Al_source_L
+MUL $c2m1 $intercept_Al_source_L $slope_Al_source_N
+SUB $y_intersection $c1m2 $c2m1
+MUL $y_intersection $y_intersection $inv_m2_minus_m1                       # Answer
+# Calculate the center of the Al piece
+SINE $sinTheta $theta
+MUL $x_center_Al_source $dim_AlPlate.x $sinTheta
+MUL $x_center_Al_source $x_center_Al_source 0.5
+ADD $x_center_Al_source $x_intersection $x_center_Al_source                # Answer
+MUL $y_center_Al_source $dim_AlPlate.y $sinTheta
+MUL $y_center_Al_source $y_center_Al_source 0.5
+SUB $y_center_Al_source $y_intersection $y_center_Al_source                # Answer
+SUB $z_center_Al_source $pos_AlPlate_source_1.z $dim_AlPlate.z             # Answer
+COPY $pos_center_Al_source {$x_center_Al_source,$y_center_Al_source,$z_center_Al_source}
+SUB $rot_center_Al_source $theta 90
+
+# Step 3. Pick and place the Al plate on Chuck 0
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+CALL @CALCPICKUP $pos_center_Al_source -> $pos_source
+CALL @CALCPICKUP $pos_center_Al_target -> $pos_target
+CALL @PICKUPPART $pos_source $rot_center_Al_source
+CALL @PLACEPART $pos_target 0
+MOVENAME tool_rack_pos_2_out 200
+UNLOADTOOL picker_tool
+
+# Step 4. Prompt placement of CROC on LaunchROC and turn on vacuum
+@STEP_FOUR_Q1 CHOICEPOPUP $choice "Have you placed the gelpack containing the CROC on the gelpack release station?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FOUR_Q1 $choice
+SETVAC gelpak_release 1
+@STEP_FOUR_Q3 CHOICEPOPUP $choice "Have you placed the CROC on the LaunchCROC?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FOUR_Q3 $choice
+SETVAC croc_launchROC_top 1
+SETVAC gelpak_release 0
+
+# Step 5. Survey the CROC and determine its center and rotation
+CALL @FINDROCCENTERS $pos_CROC_source $dim_CROC.y $dim_CROC.x -> $pos_CROC_source $rot_CROC_source
+
+# Step 6. Prompt user to apply glue to Al place. Pick and place the CROC on top of the Al plate on Chuck 0
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME crocStaging 200
+@STEP_SIX CHOICEPOPUP $choice "Have you applied glue through the stencil on the Al plate?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX $choice
+CALL @CALCPICKUP $pos_CROC_source -> $pos_source
+CALL @CALCPICKUP $pos_CROC_target -> $pos_target
+CALL @PICKUPPART $pos_source $rot_CROC_source
+COPY $place_pos $pos_target
+COPY $place_pos_z0 $place_pos
+COPY $place_pos_z0.z 0
+MOVESAFE $place_pos_z0 200
+ROTATETO 0
+SUB $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 50
+ADD $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 1
+WAIT 500
+SETVAC "croc_chuck_0_top" 1
+SETVAC "croc_chuck_0_bot" 1
+
+# Step 7. If cured, put picker tool back
+@STEP_SEVEN CHOICEPOPUP $choice "Has sufficient time passed for the glue to have cured?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SEVEN $choice
+SETVAC gantry_head_inner 0
+WAIT 2000
+SUB $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 1
+MOVETO $place_pos_z0 25
+UNLOADTOOL picker_tool
+SETVAC "croc_chuck_0_top" 0
+SETVAC "croc_chuck_0_bot" 0
+HOME
+
+END
+
+
+# SURVEYPOS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYPOS(x_corner)
+  MOVESAFE $x_corner 200
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you align the crosshairs correctly?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+# CALCPICKUP
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+#  $pickup_pos_z0 - pickup position with z = 0
+@CALCPICKUP(target_pos)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  RETURN $pickup_pos
+
+
+# PICKUPPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of the what is being picked up
+#  $location - value of 0 for "top" and 1 for "bot"
+#
+# No Returns
+@PICKUPPART(pick_pos,pick_rot)
+  COPY $pick_pos_z0 $pick_pos
+  COPY $pick_pos_z0.z 0
+  MOVESAFE $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+  SETVAC "croc_launchROC_top" 0
+  SETVAC "croc_launchROC_bot" 0
+  @PICK_WAIT WAIT 500
+  SUB $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 1
+  MOVETO $pick_pos_z0 25
+  RETURN
+
+
+# PLACEPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $place_pos - pickup position
+#  $place_pos_z0 - pickup position with z = 0
+#  $place_rot - rotation of the what is being picked up
+#  $stat - station number
+#
+# No Returns
+@PLACEPART(place_pos,place_rot,stat)
+  COPY $place_pos_z0 $place_pos
+  COPY $place_pos_z0.z 0
+  MOVESAFE $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 1
+  WAIT 500
+  SETVAC "croc_chuck_0_top" 1
+  SETVAC "croc_chuck_0_bot" 1
+  @PLACE_WAIT WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 25
+  RETURN
+
+
+#FINDROCCENTERS
+# Arguments:
+#  $tr - approximate position of the top right corner
+#  $len - length of what is being surveyed
+#  $wid - wid of what is being surveye
+#
+# Returns:
+#  $position - calculated position of the center based on the corners
+#  $rotation - calculated rotation based on the corners
+@FINDROCCENTERS(tr,len,wid)
+  MOVESAFE $tr 200
+  @ROC_0 CHOICEPOPUP $choice "Ready to find the Top Right marker?" "Yes" "No"
+  GOTOIFN @ROC_0 $choice
+  CALL @SURVEYPOS $tr -> $tr
+
+  COPY $br $tr
+  ADD $br.y $tr.y $len
+  @ROC_1 CHOICEPOPUP $choice "Ready to find the Bottom Right marker?" "Yes" "No"
+  GOTOIFN @ROC_1 $choice
+  CALL @SURVEYPOS $br -> $br
+
+  COPY $bl $br
+  SUB $bl.x $bl.x $wid
+  @ROC_2 CHOICEPOPUP $choice "Ready to find the Bottom Left marker?" "Yes" "No"
+  GOTOIFN @ROC_2 $choice
+  CALL @SURVEYPOS $bl -> $bl
+
+  COPY $tl $tr
+  SUB $tl.x $tl.x $wid
+  @ROC_3 CHOICEPOPUP $choice "Ready to find the Top Left marker?" "Yes" "No"
+  GOTOIFN @ROC_3 $choice
+  CALL @SURVEYPOS $tl -> $tl
+
+  # Calculate the orientation of the ROC
+  FIT $position $rotation TFPX_CROC2X2_QUADROC $tr $br $bl $tl
+
+  QUAT2EULER $rotation $trash0 $trash1 $rotation
+
+  PRINT "ROC"
+  PRINT "Rot: %f Center: %v" $rotation $position
+  PRINT ""
+
+  CHOICEPOPUP $choice "Are angles and positions reasonable (See console)?" "Yes, continue" "No"
+  GOTOIF @ANGLE_CHECK_2 $choice
+  END
+  @ANGLE_CHECK_2
+  RETURN $position $rotation
