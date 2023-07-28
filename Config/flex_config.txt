@@ -319,8 +319,10 @@ siteGeometry.pos_croc2x2LaunchROC_TL: {562.775617,516.425142,99.490000}
 siteGeometry.quadROC_bondsToCenter: {9.228,0,0}
 
  # Station 0 data
-siteGeometry.pos_croc2x2_translation_STAT_0: {-149.632,-0.551,-6.800} #REMEASURE
-siteGeometry.rot_croc2x2_translation_STAT_0: -0.125254 #REMEASURE
+# siteGeometry.pos_croc2x2_translation_STAT_0: {-149.634,-0.548,-6.800} # Measured on 6/8/2023 by Mahimna and Souvik
+siteGeometry.pos_croc2x2_translation_STAT_0: {-149.610,-0.562,-6.755} # Measured on 7/2/2023 by Mahimna
+# siteGeometry.rot_croc2x2_translation_STAT_0: -0.125108 # Measured on 6/8/2023 by Mahimna and Souvik
+siteGeometry.rot_croc2x2_translation_STAT_0: -0.1213 # Measured on 6/8/2023 by Mahimna
 
 ### Quad Sensor ROC Information
 
@@ -344,10 +346,10 @@ siteGeometry.croc2x2_rot_translation_STAT_4: 0 #REMEASURE
 
 
  # Fine Correction for the Quad ROC Script
-siteGeometry.delta_croc2x2_tr: {0.06,0.1,0}
-siteGeometry.delta_croc2x2_br: {0.06,0.1,0}
-siteGeometry.delta_croc2x2_bl: {0.06,0.1,0}
-siteGeometry.delta_croc2x2_tl: {0.06,0.1,0}
+siteGeometry.delta_croc2x2_tr: {0.06,0.1,0} # Default values = {0.06,0.1,0}
+siteGeometry.delta_croc2x2_br: {0.16,0.1,0} # Default values = {0.06,0.1,0}
+siteGeometry.delta_croc2x2_bl: {0.06,0.1,0} # Default values = {0.06,0.1,0}
+siteGeometry.delta_croc2x2_tl: {0.17,0.1,0} # Default values = {0.06,0.1,0}
 
  # Fine Correction for the Quad Sensor ROC Script
 siteGeometry.delta_QUADSENSORROC: {0,0,0}
