@@ -8,16 +8,16 @@ VERSION v2.1
 # -----------------------------------------------------
 # Steps:
 # 1. Prompt placement of HDI on LaunchHDI and turn on the HDI's vacuum
-# 2. Move the gantry to the HDI for surveillance
-# 3. Compute would-be position and rotation of HDI on Chuck 0
-# 4. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
-# 5. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
+# 2. Prompt placement of weight tool on the HDI and switch on the vacuum
+# 3. Move the gantry to the HDI for surveillance
+# 4. Compute would-be position and rotation of HDI on Chuck 0
+# 5. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
+# 6. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
 #    i.   Pull vacuum on gelpack
 #    ii.  Is the end placement location clear?
 #    iii. Is the Pickup Tool ready?
-# 6. Survey the 4 CROCs on LaunchROC. Their initial positions and rotations will be calculated.
-# 7. Pick up the CROCs and place them on Chuck 0 positions computed in Step 4
-# 8. Prompt placement of weight tool on the HDI and switch on the vacuum
+# 7. Survey the 4 CROCs on LaunchROC. Their initial positions and rotations will be calculated.
+# 8. Pick up the CROCs and place them on Chuck 0 positions computed in Step 4
 # 9. Check that the HDI was moved and the adhesive was applied
 # 10. Prompt placement of Weight Tool bearing HDI onto the ROCs
 # 11. Export the variables
@@ -38,6 +38,7 @@ SETVAC croc2x2_chuck_0_tr 0
 SETVAC croc2x2_chuck_0_br 0
 SETVAC croc2x2_chuck_0_bl 0
 SETVAC croc2x2_chuck_0_tl 0
+SETVAC croc2x2_weight_0 0
 SETLOG "LOG_BUILD_CROC_Digital_2x2.txt"
 SETERRORMODE prompt
 
@@ -69,8 +70,15 @@ PRINT "--------------------------"
 GOTOIFN @STEP_ONE $choice
 SETVAC croc2x2_launchHDI 1
 
-# Step 2. Move the gantry to the HDI for surveillance
-@STEP_TWO PASS
+# Step 2. Prompt placement of weight tool on the HDI and switch on the vacuum
+@STEP_TWO CHOICEPOPUP $choice "Have you placed Weight Tool 0 on the HDI Launchpad such that it lays flat against the HDI?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TWO $choice
+SETVAC croc2x2_weight_0 1
+WAIT 1000
+SETVAC croc2x2_launchHDI 0
+
+# Step 3. Move the gantry to the HDI for surveillance
+@STEP_THREE PASS
 @HDI_0 CHOICEPOPUP $choice "Ready to find the top-right corner of the HDI's top-right bond pad?" "Yes" "No"
 GOTOIFN @HDI_0 $choice
 CALL @SURVEYPOS $pos_croc2x2_hdi_TR -> $pos_croc2x2_hdi_TR
@@ -90,15 +98,21 @@ SUB $pos_croc2x2_hdi_TL $pos_croc2x2_hdi_BL {0,$dim_croc2x2_hdi.y,0}
 GOTOIFN @HDI_3 $choice
 CALL @SURVEYPOS $pos_croc2x2_hdi_TL -> $pos_croc2x2_hdi_TL
 
-# Step 3. Compute would-be position and rotation of HDI on Chuck 0
-@STEP_THREE PASS
+MOVENAME crocStaging 100
+
+# Step 4. Compute would-be position and rotation of HDI on Chuck 0
+@STEP_FOUR PASS
 FIT $pos_croc2x2_hdi_initial $rot_croc2x2_hdi_initial TFPX_CROC2X2_HDI $pos_croc2x2_hdi_TR $pos_croc2x2_hdi_BR $pos_croc2x2_hdi_BL $pos_croc2x2_hdi_TL
 ADD $pos_croc2x2_hdi_final $pos_croc2x2_hdi_initial $pos_translation
 QUAT2EULER $rot_croc2x2_hdi_initial $trash $trash1 $rot_croc2x2_hdi_initial
 ADD $rot_croc2x2_hdi_final $rot_croc2x2_hdi_initial $rot_translation
 
-# Step 4. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
-@STEP_FOUR PASS
+PRINT "HDI Initial rotation: %f, position: %v" $rot_croc2x2_hdi_initial $pos_croc2x2_hdi_initial
+PRINT "Translation rotation: %f, vector: %v" $rot_translation $pos_translation
+PRINT "HDI Final rotation: %f, position: %v" $rot_croc2x2_hdi_final $pos_croc2x2_hdi_final
+
+# Step 5. Compute would-be positions and rotations of all 4 CROCs on Chuck 0
+@STEP_FIVE PASS
 COS $cos_rot_hdi $rot_croc2x2_hdi_final
 SIN $sin_rot_hdi $rot_croc2x2_hdi_final
 
@@ -158,14 +172,14 @@ COPY $pos_BR_ROC_final.z $pos_croc2x2_hdi_final.z
 COPY $pos_BL_ROC_final.z $pos_croc2x2_hdi_final.z
 COPY $pos_TR_ROC_final.z $pos_croc2x2_hdi_final.z
 
-# Step 5. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
-@STEP_FIVE CHOICEPOPUP $choice "Have you placed the gelpack on the gelpack release station?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_FIVE $choice
+# Step 6. Prompt removal of 4 CROC Digital chips from gelpack and placement on LaunchROC
+@STEP_SIX CHOICEPOPUP $choice "Have you placed the gelpack on the gelpack release station?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX $choice
 SETVAC gelpak_release 1
 
   #i. Are the ROCs placed on the launchpad?
-@STEP_FIVE_i CHOICEPOPUP $choice "Have you placed the four ROCs on the Launchpad?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_FIVE_i $choice
+@STEP_SIX_i CHOICEPOPUP $choice "Have you placed the four ROCs on the Launchpad?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX_i $choice
 SETVAC gelpak_release 0
 SETVAC croc2x2_launchROC_tr 1
 SETVAC croc2x2_launchROC_br 1
@@ -173,15 +187,11 @@ SETVAC croc2x2_launchROC_bl 1
 SETVAC croc2x2_launchROC_tl 1
 
   #ii. Is the end placement location cleared?
-@STEP_FIVE_ii CHOICEPOPUP $choice "Is Chuck 0 clear?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_FIVE_ii $choice
+@STEP_SIX_ii CHOICEPOPUP $choice "Is Chuck 0 clear?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX_ii $choice
 
-  #iii. Is the Weight Tool ready?
-@STEP_FIVE_iii CHOICEPOPUP $choice "Is the Station 0 Weight Tool ready?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_FIVE_iii $choice
-
-# Step 6. Survey the four ROCs
-@STEP_SIX PASS
+# Step 7. Survey the four ROCs
+@STEP_SEVEN PASS
 MUL $len $dim_croc2x2_croc.y 2
 MUL $wid $dim_croc2x2_croc.x 2
 
@@ -201,8 +211,8 @@ CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_BL $len $wid -> $pos_BL_ROC_initial $
 GOTOIFN @CROC_TL $choice
 CALL @FINDROCCENTERS $pos_croc2x2LaunchROC_TL $len $wid -> $pos_TL_ROC_initial $rot_TL_ROC_initial
 
-# Step 7. Pick up the four ROCs and place them on Chuck 0 at positions computed in Step 4
-@STEP_SEVEN PASS
+# Step 8. Pick up the four ROCs and place them on Chuck 0 at positions computed in Step 4
+@STEP_EIGHT PASS
 MOVENAME tool_rack_pos_2_out 200
 LOADTOOL picker_tool
 MOVENAME stagingArea
@@ -246,13 +256,6 @@ CALL @PLACESTEP $pos $pos_z0 $rot_croc2x2_hdi_final 3
 ROTATETO 0 10
 MOVENAME tool_rack_pos_2_out 100
 UNLOADTOOL
-
-# Step 8. Prompt placement of weight tool on the HDI and switch on the vacuum
-@STEP_EIGHT CHOICEPOPUP $choice "Have you placed Weight Tool 0 on the HDI Launchpad such that it lays flat against the HDI?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_EIGHT $choice
-SETVAC croc2x2_weight_0 1
-WAIT 1000
-SETVAC croc2x2_launchHDI 0
 
 
 # Step 9. Check that HDI was moved to the weight tool Launchpad and the adhesive was applied

@@ -183,25 +183,25 @@ END
   MOVESAFE $top_hdi 100
 
   # HDI bond pads, top and bottom
-  @HDI_TOP_OUTER CHOICEPOPUP $choice "Ready to survey the HDI's upper bond pad's outer edge's middle?"
+  @HDI_TOP_OUTER CHOICEPOPUP $choice "Ready to survey the HDI's upper bond pad's any corner?"
   GOTOIFN @HDI_TOP_OUTER $choice
   CALL @SURVEYCORNERS  $top_hdi -> $top_hdi_outer
   COPY $top_hdi_inner $top_hdi_outer
   MUL $len_bondHDI_signed $len_hdi_bondpads $sign
   ADD $top_hdi_inner.x $top_hdi_outer.x $len_bondHDI_signed
-  @HDI_TOP_INNER CHOICEPOPUP $choice "Ready to survey the HDI's upper bond pad's inner edge's middle?"
+  @HDI_TOP_INNER CHOICEPOPUP $choice "Ready to survey the HDI's upper bond pad's opposite corner?"
   GOTOIFN @HDI_TOP_INNER $choice
   CALL @SURVEYCORNERS $top_hdi_inner -> $top_hdi_inner
   ADD $top_hdi $top_hdi_outer $top_hdi_inner
   MUL $top_hdi $top_hdi {0.5,0.5,0.5}
   COPY $bot_hdi.z $top_hdi.z
 
-  @HDI_BOT_OUTER CHOICEPOPUP $choice "Ready to survey the HDI's lower bond pad's outer edge's middle?"
+  @HDI_BOT_OUTER CHOICEPOPUP $choice  "Ready to survey the HDI's lower bond pad's any corner?"
   GOTOIFN @HDI_BOT_OUTER $choice
   CALL @SURVEYCORNERS  $bot_hdi -> $bot_hdi_outer
   COPY $bot_hdi_inner $bot_hdi_outer
   ADD $bot_hdi_inner.x $bot_hdi_outer.x $len_bondHDI_signed
-  @HDI_BOT_INNER CHOICEPOPUP $choice "Ready to survey the HDI's lower bond pad's inner edge's middle?"
+  @HDI_BOT_INNER CHOICEPOPUP $choice  "Ready to survey the HDI's lower bond pad's opposite corner?"
   GOTOIFN @HDI_BOT_INNER $choice
   CALL @SURVEYCORNERS $bot_hdi_inner -> $bot_hdi_inner
   ADD $bot_hdi $bot_hdi_outer $bot_hdi_inner
