@@ -204,7 +204,10 @@ geometry.TFPX_GHCOPIECE.fid_br: {7.991,22.061,0}
 geometry.TFPX_GHCOPIECE.fid_bl: {-7.991,22.061,0}
 geometry.TFPX_GHCOPIECE.fid_tl: {-7.991,-22.061,0}
 
-geometry.PICKER_TOOL.center_offset: {0,0,55.0} # tripod suction (original: 0.014, 0.011, 54.6)
+geometry.PICKER_TOOL.center_offset: {0,0,54.0} # tripod suction (original: 0.014, 0.011, 54.6)
+# New tripod has different offset measurements for each suction cup;
+# We've measured 53.7, 54.0, and 54.4 mm
+
 #fitCircle output for tripod: (491.98257342034674, 541.4030511985753)
 #geometry.PICKER_TOOL.center_offset: {0,0,55.2} #tiny suction cup (55.5)
 #geometry.PICKER_TOOL.center_offset: {0,0,56.86} #small suction cup
@@ -215,7 +218,6 @@ geometry.PICKER_TOOL.center_offset: {0,0,55.0} # tripod suction (original: 0.014
 # The offset between the camera and the
 # center-of-rotation of the gantry head in x-y
 # and the bottom surface of the tool-holder in z
-# geometry.tool_holder_offset: {0.909,-103,-23.5} # CUA deliberate mistake
 geometry.tool_holder_offset: {-0.188,-101.813,-23.5} # After GHCO fine calibration
 
 #================================================
