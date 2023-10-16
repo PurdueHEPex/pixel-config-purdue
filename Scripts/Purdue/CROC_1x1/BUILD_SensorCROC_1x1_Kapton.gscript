@@ -1,0 +1,447 @@
+VERSION v2.1
+######################## BUILD_CROC_1x1_For_Kapton #############################
+# Souvik Das, souvik@purdue.edu
+# Purdue University Department of Physics and Astronomy
+# October 2023
+# -----------------------------------------------------
+# Steps:
+# 1. Prompt placement of Ka plate on LaunchROC  and turn on vacuum
+# 2. Survey the Ka plate and determine its center and rotation
+# 3. Pick and place the Ka plate on Chuck 0
+# 4. Prompt placement of SensorCROC on LaunchROC and turn on vacuum
+# 5. Survey the SensorCROC and determine its center and rotation
+# 6. Pick and place the SensorCROC on top of the Ka plate on Chuck 0
+
+# Initialize the system
+LOADCONFIG
+HOME
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_chuck_0_top 0
+SETVAC croc_chuck_0_bot 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETLOG "BUILD_SensorCROC_1x1_Kapton.txt"
+SETERRORMODE prompt
+
+# Dimensions of the Ka plate and CROC
+COPY $width_KaPlate 8.638     # mm
+COPY $width_SensorCROC 9.343  # mm
+
+# Approximate positions of the Ka plate and CROC
+COPY $pos_KaPlate_source_1 {110.785,533.252,100.472} # mm
+COPY $pos_KaPlate_source_2 {110.739,569.432,100.472} # mm
+COPY $pos_CROC_source_1 {112.093,522.815,100.329} # mm
+COPY $pos_CROC_source_2 {111.677,543.912,100.329} # mm
+
+# Target positions of Ka plate and CROC on Chuck 0
+COPY $pos_center_Ka_target {70.513,545.156,93.580} # mm
+COPY $pos_CROC_target {70.513,545.156,92.789} # mm
+
+# Step 1. Prompt placement of Ka plate on LaunchROC and turn on vacuum
+@STEP_ONE CHOICEPOPUP $choice "Have you placed the Kapton plate on the LaunchROC?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ONE $choice
+SETVAC croc_launchROC_top 1
+SETVAC croc_launchROC_bot 1
+
+# Step 2. Survey the Ka plate and determine its center and rotation
+@STEP_TWO PASS
+@STEP_TWO_Q1 CHOICEPOPUP $choice "Ready to survey any point on the circumference of the far hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q1 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_1 -> $pos_KaPlate_source_1_1
+@STEP_TWO_Q2 CHOICEPOPUP $choice "Ready to survey a second sufficiently separated point on the circumference of the far hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q2 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_1_1 -> $pos_KaPlate_source_1_2
+@STEP_TWO_Q3 CHOICEPOPUP $choice "Ready to survey a third sufficiently separated point on the circumference of the far hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q3 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_1_2 -> $pos_KaPlate_source_1_3
+@STEP_TWO_Q4 CHOICEPOPUP $choice "Ready to survey any point on the circumference of the near hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q4 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_2 -> $pos_KaPlate_source_2_1
+@STEP_TWO_Q5 CHOICEPOPUP $choice "Ready to survey a second sufficiently separated point on the circumference of the near hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q5 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_2_1 -> $pos_KaPlate_source_2_2
+@STEP_TWO_Q6 CHOICEPOPUP $choice "Ready to survey a third sufficiently separated point on the circumference of the near hole on the left side of the Kapton plate?"
+GOTOIFN @STEP_TWO_Q6 $choice
+CALL @SURVEYPOS $pos_KaPlate_source_2_2 -> $pos_KaPlate_source_2_3
+# Find the center of the two holes
+CALL @FIT_CIRCLE $pos_KaPlate_source_1_1 $pos_KaPlate_source_1_2 $pos_KaPlate_source_1_3 -> $pos_KaPlate_source_1
+CALL @FIT_CIRCLE $pos_KaPlate_source_2_1 $pos_KaPlate_source_2_2 $pos_KaPlate_source_2_3 -> $pos_KaPlate_source_2
+# Calculate the center and rotation of the Ka plate
+CALL @DROPPERP $pos_KaPlate_source_1 $pos_KaPlate_source_2 $width_KaPlate -> $pos_center_Ka_source $rot_center_Ka_source
+
+# Step 3. Pick and place the Ka plate on Chuck 0
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+CALL @CALCPICKUP $pos_center_Ka_source -> $pos_source
+CALL @CALCPICKUP $pos_center_Ka_target -> $pos_target
+CALL @PICKUPPART $pos_source $rot_center_Ka_source
+CALL @PLACEPART $pos_target 0
+MOVENAME tool_rack_pos_2_out 200
+UNLOADTOOL picker_tool
+
+# Step 4. Prompt placement of SensorCROC on LaunchROC and turn on vacuum
+@STEP_FOUR_Q1 CHOICEPOPUP $choice "Have you placed the gelpack containing the SensorCROC on the gelpack release station?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FOUR_Q1 $choice
+SETVAC gelpak_release 1
+@STEP_FOUR_Q3 CHOICEPOPUP $choice "Have you placed the SensorCROC on the LaunchCROC?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FOUR_Q3 $choice
+SETVAC croc_launchROC_top 1
+SETVAC gelpak_release 0
+
+# Step 5. Survey the CROC and determine its center and rotation
+@STEP_FIVE PASS
+@STEP_FIVE_Q1 CHOICEPOPUP $choice "Ready to survey any corner of the furthest bondpad?"
+GOTOIFN @STEP_FIVE_Q1 $choice
+CALL @SURVEYPOS $pos_CROC_source_1 -> $pos_CROC_source_1_1
+@STEP_FIVE_Q2 CHOICEPOPUP $choice "Ready to survey the opposite corner of the furthest bondpad?"
+GOTOIFN @STEP_FIVE_Q2 $choice
+CALL @SURVEYPOS $pos_CROC_source_1_1 -> $pos_CROC_source_1_2
+@STEP_FIVE_Q3 CHOICEPOPUP $choice "Ready to survey any corner of the nearest bondpad?"
+GOTOIFN @STEP_FIVE_Q3 $choice
+CALL @SURVEYPOS $pos_CROC_source_2 -> $pos_CROC_source_2_1
+@STEP_FIVE_Q4 CHOICEPOPUP $choice "Ready to survey the opposite corner of the nearest bondpad?"
+GOTOIFN @STEP_FIVE_Q4 $choice
+CALL @SURVEYPOS $pos_CROC_source_2_1 -> $pos_CROC_source_2_2
+
+# Calculate the midpoints of the extremal wirebonds, and the midpoint between them
+ADD $pos_CROC_source_1 $pos_CROC_source_1_1 $pos_CROC_source_1_2
+MUL $pos_CROC_source_1 $pos_CROC_source_1 {0.5,0.5,0.5}
+ADD $pos_CROC_source_2 $pos_CROC_source_2_1 $pos_CROC_source_2_2
+MUL $pos_CROC_source_2 $pos_CROC_source_2 {0.5,0.5,0.5}
+ADD $pos_CROC_source $pos_CROC_source_1 $pos_CROC_source_2
+MUL $pos_CROC_source $pos_CROC_source {0.5,0.5,0.5}
+CALL @DROPPERP $pos_CROC_source_1 $pos_CROC_source_2 $width_SensorCROC -> $pos_CROC_source $rot_CROC_source
+# Calculate the angle of the left edge
+# SUB $numer_CROC_source $pos_CROC_source_2.x $pos_CROC_source_1.x
+# SUB $denom_CROC_source $pos_CROC_source_2.y $pos_CROC_source_1.y
+# ATAN2 $rot_CROC_source $denom_CROC_source $numer_CROC_source
+# Calculate the center of the SensorCROC
+# SINE $sinTheta_CROC $rot_CROC_source
+# COSINE $cosTheta_CROC $rot_CROC_source
+# MUL $xAdj $width_SensorCROC $cosTheta_CROC
+# MUL $yAdj $width_SensorCROC $sinTheta_CROC
+# ADD $x_CROC_source $pos_CROC_source.x $xAdj
+# SUB $y_CROC_source $pos_CROC_source.y $yAdj
+# COPY $pos_CROC_source {$x_CROC_source,$y_CROC_source,$pos_CROC_source.z}
+# MUL $rot_CROC_source $rot_CROC_source -1
+
+# Step 6. Prompt user to apply glue to Ka place. Pick and place the CROC on top of the Ka plate on Chuck 0
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME crocStaging 200
+@STEP_SIX CHOICEPOPUP $choice "Have you applied glue through the stencil on the Kapton plate?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX $choice
+CALL @CALCPICKUP $pos_CROC_source -> $pos_source
+CALL @CALCPICKUP $pos_CROC_target -> $pos_target
+CALL @PICKUPPART $pos_source $rot_CROC_source
+COPY $place_pos $pos_target
+COPY $place_pos_z0 $place_pos
+COPY $place_pos_z0.z 0
+MOVESAFE $place_pos_z0 200
+ROTATETO 0
+CHOICEPOPUP $choice "Did it pick up the SensorCROC?"
+GOTOIFN @STEP_SIX $choice
+SUB $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 50
+ADD $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 1
+WAIT 500
+SETVAC "croc_chuck_0_top" 1
+SETVAC "croc_chuck_0_bot" 1
+
+# Step 7. If cured, put picker tool back
+@STEP_SEVEN CHOICEPOPUP $choice "Has sufficient time passed for the glue to have cured?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SEVEN $choice
+SETVAC gantry_head_inner 0
+WAIT 2000
+SUB $place_pos.z $place_pos.z 0.5
+MOVETO $place_pos 1
+MOVETO $place_pos_z0 25
+UNLOADTOOL picker_tool
+SETVAC "croc_chuck_0_top" 0
+SETVAC "croc_chuck_0_bot" 0
+HOME
+
+END
+
+
+# SURVEYPOS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYPOS(x_corner)
+  MOVESAFE $x_corner 200
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you align the crosshairs correctly?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+# CALCPICKUP
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+@CALCPICKUP(target_pos)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  RETURN $pickup_pos
+
+
+# PICKUPPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of the what is being picked up
+#  $location - value of 0 for "top" and 1 for "bot"
+#
+# No Returns
+@PICKUPPART(pick_pos,pick_rot)
+  COPY $pick_pos_z0 $pick_pos
+  COPY $pick_pos_z0.z 0
+  MOVESAFE $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+  SETVAC "croc_launchROC_top" 0
+  SETVAC "croc_launchROC_bot" 0
+  @PICK_WAIT WAIT 500
+  SUB $pick_pos.z $pick_pos.z 0.5
+  MOVETO $pick_pos 0.1
+  MOVETO $pick_pos_z0 25
+  RETURN
+
+
+# PLACEPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $place_pos - pickup position
+#  $place_pos_z0 - pickup position with z = 0
+#  $place_rot - rotation of the what is being picked up
+#  $stat - station number
+#
+# No Returns
+@PLACEPART(place_pos,place_rot,stat)
+  COPY $place_pos_z0 $place_pos
+  COPY $place_pos_z0.z 0
+  MOVESAFE $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 1
+  WAIT 500
+  SETVAC "croc_chuck_0_top" 1
+  SETVAC "croc_chuck_0_bot" 1
+  @PLACE_WAIT WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 0.5
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 25
+  RETURN
+
+# FIT_CIRCLE
+# Fits a circle to 3 points on the edge and returns center of the circle
+# Arguments:
+#  $circlepoint1, $circlepoint2, $circlepoint3
+# Returns:
+#  $pos_circleCenter
+@FIT_CIRCLE(circlepoint1,circlepoint2,circlepoint3)
+  # Setting variables
+  COPY $mx 0
+  COPY $my 0
+  COPY $mz 0
+  COPY $mxx 0
+  COPY $myy 0
+  COPY $mxy 0
+  COPY $mxz 0
+  COPY $myz 0
+
+  # For Loop. Must be written out explicitly due to language limitations.
+  # i = 1
+  COPY $temp_x $circlepoint1.x
+  COPY $temp_y $circlepoint1.y
+  MUL $temp_xx $temp_x $temp_x
+  MUL $temp_yy $temp_y $temp_y
+  ADD $temp_z $temp_xx $temp_yy
+  ADD $mx $mx $temp_x
+  ADD $my $my $temp_y
+  ADD $mz $mz $temp_z
+  MUL $temp_xy $temp_x $temp_y
+  MUL $temp_xz $temp_x $temp_z
+  MUL $temp_yz $temp_y $temp_z
+  ADD $mxx $mxx $temp_xx
+  ADD $myy $myy $temp_yy
+  ADD $mxy $mxy $temp_xy
+  ADD $mxz $mxz $temp_xz
+  ADD $myz $myz $temp_yz
+
+  # i = 2
+  COPY $temp_x $circlepoint2.x
+  COPY $temp_y $circlepoint2.y
+  MUL $temp_xx $temp_x $temp_x
+  MUL $temp_yy $temp_y $temp_y
+  ADD $temp_z $temp_xx $temp_yy
+  ADD $mx $mx $temp_x
+  ADD $my $my $temp_y
+  ADD $mz $mz $temp_z
+  MUL $temp_xy $temp_x $temp_y
+  MUL $temp_xz $temp_x $temp_z
+  MUL $temp_yz $temp_y $temp_z
+  ADD $mxx $mxx $temp_xx
+  ADD $myy $myy $temp_yy
+  ADD $mxy $mxy $temp_xy
+  ADD $mxz $mxz $temp_xz
+  ADD $myz $myz $temp_yz
+
+  # i = 3
+  COPY $temp_x $circlepoint3.x
+  COPY $temp_y $circlepoint3.y
+  MUL $temp_xx $temp_x $temp_x
+  MUL $temp_yy $temp_y $temp_y
+  ADD $temp_z $temp_xx $temp_yy
+  ADD $mx $mx $temp_x
+  ADD $my $my $temp_y
+  ADD $mz $mz $temp_z
+  MUL $temp_xy $temp_x $temp_y
+  MUL $temp_xz $temp_x $temp_z
+  MUL $temp_yz $temp_y $temp_z
+  ADD $mxx $mxx $temp_xx
+  ADD $myy $myy $temp_yy
+  ADD $mxy $mxy $temp_xy
+  ADD $mxz $mxz $temp_xz
+  ADD $myz $myz $temp_yz
+
+  # End of for loop. All of these values appear in the form (for example) mxx * n meaning we can just multiply them here instead.
+  MUL $mxx $mxx 3
+  MUL $myy $myy 3
+  MUL $mxy $mxy 3
+  MUL $mxz $mxz 3
+  MUL $myz $myz 3
+
+  # This is what the code below is doing:
+  # 1. xc = xc * ((((temp1)*(temp2) - Not defined yet) / Not defined yet)
+  # 2. xc = xc * ((((temp1) - Not defined yet) / Not defined yet)
+  # 3. xc = xc * (((temp1) - (temp2)*(temp3)) / Not defined yet)
+  # 4. xc = xc * (((temp1) - (temp2)) / Not defined yet)
+  # 5. xc = xc * ((temp1) / Not defined yet)
+  # 6. xc = xc * ((temp1) / ((temp2)*(temp3) - Not defined yet))
+  # 7. xc = xc * ((temp1) / ((temp2) - Not defined yet))
+  # 8. xc = xc * ((temp1) / ((temp2) - (temp3)))
+  # 9. xc = xc * (temp1 / temp2)
+  # 0. xc = xc * temp1
+  # I use x as an example, but y follows the same form with only minor differences, so I won't write that one out.
+
+  # This is the calculation of the x position of the center.
+  #1
+  MUL $temp1 $mx $my
+  SUB $temp1 $mxy $temp1
+  MUL $temp2 $my $mz
+  SUB $temp2 $temp2 $myz
+  #2
+  MUL $temp1 $temp1 $temp2
+  #3
+  MUL $temp2 $my $my
+  SUB $temp2 $myy $temp2
+  MUL $temp3 $mx $mz
+  SUB $temp3 $temp3 $mxz
+  #4
+  MUL $temp2 $temp2 $temp3
+  #5
+  SUB $temp1 $temp1 $temp2
+  #6
+  MUL $temp2 $mx $mx
+  SUB $temp2 $mxx $temp2
+  MUL $temp3 $my $my
+  SUB $temp3 $myy $temp3
+  #7
+  MUL $temp2 $temp2 $temp3
+  #8
+  MUL $temp3 $mx $my
+  SUB $temp3 $mxy $temp3
+  MUL $temp3 $temp3 $temp3
+  #9
+  SUB $temp2 $temp2 $temp3
+  #0
+  INVERT $temp2 $temp2
+  MUL $temp1 $temp1 $temp2
+  MUL $xc 0.5 $temp1
+
+  # This is the calculation of the y position of the center.
+  #1
+  MUL $temp1 $mx $my
+  SUB $temp1 $mxy $temp1
+  MUL $temp2 $mx $mz
+  SUB $temp2 $temp2 $mxz
+  #2
+  MUL $temp1 $temp1 $temp2
+  #3
+  MUL $temp2 $mx $mx
+  SUB $temp2 $mxx $temp2
+  MUL $temp3 $my $mz
+  SUB $temp3 $temp3 $myz
+  #4
+  MUL $temp2 $temp2 $temp3
+  #5
+  SUB $temp1 $temp1 $temp2
+  #6
+  MUL $temp2 $mx $mx
+  SUB $temp2 $mxx $temp2
+  MUL $temp3 $my $my
+  SUB $temp3 $myy $temp3
+  #7
+  MUL $temp2 $temp2 $temp3
+  #8
+  MUL $temp3 $mx $my
+  SUB $temp3 $mxy $temp3
+  MUL $temp3 $temp3 $temp3
+  #9
+  SUB $temp2 $temp2 $temp3
+  #0
+  INVERT $temp2 $temp2
+  MUL $temp1 $temp1 $temp2
+  MUL $yc 0.5 $temp1
+
+  ADD $zc $circlepoint1.z $circlepoint2.z
+  ADD $zc $zc $circlepoint3.z
+  MUL $zc $zc 0.333333333333333
+
+  COPY $pos_circleCenter {$xc,$yc,$zc}
+  RETURN $pos_circleCenter
+
+
+# DROPPERP
+# From the midpoint between two points drop a perpendicular of given distance and report its coordinates
+# Arguments:
+#  $pos_1, $pos_2, $d
+# Returns:
+#  $pos_drop
+#  $rot
+@DROPPERP(pos_1,pos_2,d)
+  ADD $pos_center $pos_1 $pos_2
+  MUL $pos_center $pos_center {0.5,0.5,0.5}
+  SUB $numer $pos_2.x $pos_1.x
+  SUB $denom $pos_2.y $pos_1.y
+  ATAN2 $rot $denom $numer
+  SINE $sinTheta $rot
+  COSINE $cosTheta $rot
+  MUL $xAdj $d $cosTheta
+  MUL $yAdj $d $sinTheta
+  ADD $x_drop $pos_center.x $xAdj
+  SUB $y_drop $pos_center.y $yAdj
+  COPY $pos_drop {$x_drop,$y_drop,$pos_center.z}
+  MUL $rot $rot -1
+  RETURN $pos_drop $rot
