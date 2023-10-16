@@ -1,0 +1,469 @@
+VERSION v2.1
+######################## BUILD CROC Assembly Sensor ROC #############################
+# Steps:
+# 1. Prompt what station the assembly will occur at
+# 2. Prompt placement of HDI and turn on the HDI's vacuum
+# 3. Move the gantry to the HDI for surveillance
+# 4. Compute would-be position and rotation of HDI on Chuck 1
+# 5. Compute the positions of the center of the thermal mockup
+# 6. Prompt the placement of the thermal mockup
+#    i. Is the end placement location clear?
+#    ii. Is the Pickup Tool ready?
+# 7. Survey the thermal mockup
+# 8. Calculate the center of the Single Glass Mockup
+# 9. Pick up the Thermal Mockups and place them at positions computed in Step 5
+# 10. Prompt placement of vacuum tool on the HDI and switch the vacuum
+# 11. Check that the HDI was moved and the adhesive was applied
+# 12. Prompt placement of Vacuum Tool bearing HDI onto the thermal mockup
+# 13. Export the variables
+# 14. End program with vacuums on or off
+
+#Initialize the system
+LOADCONFIG
+HOME
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETVAC croc_launchHDI 0
+SETLOG "LOG_SPLIT_Assembly_CROC_SensorROC_DataGeneration.txt"
+SETERRORMODE prompt
+
+#Rough position of the top bond pad on the CROC HDI (LaunchHDI)
+FLEXREAD $pos_croc_hdi_top1 siteGeometry.pos_croc_hdi_top1
+
+#Rough Positions of the top bond pad on the Sensor ROC (LaunchROC)
+FLEXREAD $pos_croc_SensorROC_top1 siteGeometry.pos_croc_SensorROC_top1
+
+#Thicknesses of the HDI and the Sensor ROC
+FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
+FLEXREAD $thickness_sensorROC geometry.TFPX_CROC_SENSORROC.thickness
+FLEXREAD $thickness_sensor geometry.TFPX_CROC_SENSOR.thickness
+
+# Thermal Mockup dimensions
+FLEXREAD $sensorROC_bondsToCenter siteGeometry.sensorROC_bondsToCenter
+
+# Bondpad lengths
+FLEXREAD $dist_hdi_bondpads geometry.dist_CROC_HDI_bondpads
+FLEXREAD $dist_sensorROC_bondpads geometry.dist_sensorROC_bondpads
+
+#Statistical Offsets
+FLEXREAD $delta_SEN_CROC siteGeometry.delta_SEN_CROC
+
+
+# Rotate by 90 degrees for pickup and placement
+COPY $rotate_tool 0
+
+
+## Main Function ##
+
+# Step 1. Prompt what station the assembly will occur at and take in those values
+@STEP_ONE GETINTPOPUP $station "Which Station should the CROCSensor be assembled on? (0-3)"
+GOTOIF @DISPLAY_ERROR `$station<0`
+GOTOIF @DISPLAY_ERROR `$station>3`
+GOTO @FLEXREADING
+@DISPLAY_ERROR CHOICEPOPUP $trash "Bad number. Try again." "Sorry" "My bad"
+GOTO @STEP_ONE
+
+@FLEXREADING PASS
+FLEXREAD $croc_v_translation "siteGeometry.croc_v_translation_STAT_{$station}"
+FLEXREAD $croc_rot_translation "siteGeometry.croc_rot_translation_STAT_{$station}"
+SETVAC "croc_chuck_{$station}_top" 0
+SETVAC "croc_chuck_{$station}_bot" 0
+ADD $croc_v_translation.z $croc_v_translation.z $thickness_crocHDI
+SUB $croc_v_translation.z $croc_v_translation.z $thickness_sensorROC
+
+
+# Step 2. Prompt placement of HDI and turn on the HDI's vacuum
+PRINT "--------------------------"
+@STEP_TWO CHOICEPOPUP $choice "Have you placed the CROC HDI in its correct starting location using dowel pins for alignment?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TWO $choice
+SETVAC croc_launchHDI 1
+
+
+# Step 3. Move the gantry to the HDI for surveillance
+@STEP_THREE PASS
+MOVENAME crocStaging 100
+@HDI CHOICEPOPUP $choice "HDI should adhere to LaunchHDI by vacuum. Have you removed the dowel pins and are ready to survey the HDI?" "Yes" "No, ask again"
+GOTOIFN @HDI $choice
+CALL @FINDBONDCENTERS $pos_croc_hdi_top1 $dist_hdi_bondpads -> $pos_croc_hdi_top $pos_croc_hdi_bot
+
+
+# Step 4. Compute would-be position and rotation of HDI on Chuck 1
+@STEP_FOUR PASS
+CALL @CALCPOSANDROT $pos_croc_hdi_top $pos_croc_hdi_bot -> $pos_hdi_final $rot_hdi_final
+ADD $pos_hdi_final $pos_hdi_final $croc_v_translation
+ADD $rot_hdi_final $rot_hdi_final $croc_rot_translation
+
+
+# Step 5. Compute the position of the center of the Sensor CROC
+@STEP_FIVE PASS
+COPY $deltaX {-2.2,0,0}
+
+CALL @FINDCOORD $pos_hdi_final $rot_hdi_final $deltaX -> $pos_ROC_bond_center
+ADD $pos_ROC_bond_center $pos_ROC_bond_center $delta_SEN_CROC
+CALL @FINDCOORD $pos_ROC_bond_center $rot_hdi_final $sensorROC_bondsToCenter -> $pos_ROC_final
+
+MOVENAME crocStaging 100
+
+
+# Step 6. Prompt the placement of the CROC Sensor ROC
+@STEP_SIX SETVAC gelpak_release 1
+CHOICEPOPUP $choice "Have you moved the CROCSensor-1x2 from the gelpack to LaunchROC?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_SIX $choice
+SETVAC gelpak_release 0
+SETVAC croc_launchROC_top 1
+SETVAC croc_launchROC_bot 1
+
+  #i. Is the end placement location clear?
+@STEP_FIVE_i CHOICEPOPUP $choice "Is Station {$station} clear?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_i $choice
+
+  #ii. Is the Pickup Tool ready?
+@STEP_FIVE_ii CHOICEPOPUP $choice "Is the Pickup Tool ready?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIVE_ii $choice
+
+
+# Step 7. Survey the CROC Sensor ROC
+@STEP_SEVEN PASS
+@CROC CHOICEPOPUP $choice "Ready to survey the Sensor ROC?" "Yes" "No, ask again"
+GOTOIFN @CROC $choice
+CALL @FINDBONDCENTERS $pos_croc_SensorROC_top1 $dist_sensorROC_bondpads -> $pos_croc_ROC_top $pos_croc_ROC_bot
+
+
+# Step 8. Calculate the center of the CROC Sensor ROC
+@STEP_EIGHT PASS
+
+CALL @CALCPOSANDROT $pos_croc_ROC_top $pos_croc_ROC_bot -> $pos_ROC_bond_initial $rot_ROC_initial
+CALL @FINDCOORD $pos_ROC_bond_initial $rot_ROC_initial $sensorROC_bondsToCenter -> $pos_ROC_initial
+
+
+# Step 9. Pick up the Sensor ROC and place it at position computed in Step 5
+@STEP_NINE PASS
+MOVENAME tool_rack_pos_2_out 200
+LOADTOOL picker_tool
+MOVENAME crocStaging 200
+
+  #######################
+  # Sensor ROC Pickup Step #
+SUB $pos_ROC_initial.z $pos_ROC_initial.z $thickness_sensor
+CALL @CALCPICKUP $pos_ROC_initial $rot_ROC_initial -> $pos $pos_z0
+COPY $top 0
+ADD $changed_rot_ROC_initial $rot_ROC_initial $rotate_tool
+CALL @PICKUPPART $pos $pos_z0 $changed_rot_ROC_initial
+
+  # Sensor ROC Place Step  #
+CALL @CALCPICKUP $pos_ROC_final $rot_hdi_final -> $pos $pos_z0
+ADD $changed_rot_hdi_final $rot_hdi_final $rotate_tool
+CALL @PLACEPART $pos $pos_z0 $changed_rot_hdi_final $station
+  ##########################
+
+ROTATETO 0 30
+MOVENAME tool_rack_pos_2_out 200
+UNLOADTOOL
+
+HOME
+
+
+# Step 10. Prompt placement of vacuum tool on the HDI and switch the vacuum
+@STEP_TEN CHOICEPOPUP $choice "Have you placed the Vacuum Tool on the HDI on LaunchHDI?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TEN $choice
+SETVAC "croc_weight_{$station}" 1
+WAIT 1000
+SETVAC croc_launchHDI 0
+
+
+# Step 11. Check that the HDI was moved and the adhesive was applied
+@STEP_ELEVEN CHOICEPOPUP $choice "Did you move the HDI to Chuck 4 and apply the adhesive?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_ELEVEN $choice
+
+
+# Step 12. Prompt placement of Vacuum Tool bearing HDI onto the thermal mockup
+@STEP_TWELVE CHOICEPOPUP $choice "Did you place the HDI on the Thermal Mockup on Chuck 1 (With adhesive between them)?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_TWELVE $choice
+
+
+# Step 13. Export the variables
+@STEP_THIRTEEN PASS
+CALL @EXPORTVARS $pos_ROC_bond_center $pos_hdi_final $rot_hdi_final $station
+
+
+# Step 14. End program with vacuums on or off
+@STEP_FOURTEEN PASS
+CHOICEPOPUP $choice "Do you want to leave the vacuums on?" "Yes, Leave them on" "No, Turn them off"
+GOTOIF @STEP_END $choice
+
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC "croc_chuck_{$station}_top" 0
+SETVAC "croc_chuck_{$station}_bot" 0
+SETVAC croc_launchHDI 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETVAC "croc_weight_{$station}" 0
+SETVAC gelpak_release 0
+
+@STEP_END HOME
+
+END
+
+
+# SURVEYCORNERS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYCORNERS(x_corner)
+  MOVESAFE $x_corner 100
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you correctly align the cursor with the marker?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+
+# FINDBONDCENTERS
+# Arguments:
+# $top_bond1 - rough position of a corner of the top bond pad
+# $bond_len - length of the bond pads
+#
+# Returns:
+# $top_bond - center of the top-most bond pad
+# $bot_bond - cneter of the bottom-most bond pad
+@FINDBONDCENTERS(top_bond1,bond_len)
+  @FIND_0 CHOICEPOPUP $choice "Ready to find a corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_0 $choice
+  CALL @SURVEYCORNERS $top_bond1 -> $top_bond1
+
+  COPY $top_bond2 $top_bond1
+  @FIND_1 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_1 $choice
+  CALL @SURVEYCORNERS $top_bond2 -> $top_bond2
+
+  COPY $bot_bond1 $top_bond1
+  ADD $bot_bond1.y $bot_bond1.y $bond_len
+  @FIND_2 CHOICEPOPUP $choice "Ready to find a corner of the bottom bond pad?" "Yes" "No"
+  GOTOIFN @FIND_2 $choice
+  CALL @SURVEYCORNERS $bot_bond1 -> $bot_bond1
+
+  COPY $bot_bond2 $bot_bond1
+  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_3 $choice
+  CALL @SURVEYCORNERS $bot_bond2 -> $bot_bond2
+
+    # Getting the center of the bond pads
+  ADD $top_bond $top_bond1 $top_bond2
+  MUL $top_bond $top_bond {0.5,0.5,0.5}
+  ADD $bot_bond $bot_bond1 $bot_bond2
+  MUL $bot_bond $bot_bond {0.5,0.5,0.5}
+  RETURN $top_bond $bot_bond
+
+
+# CALCPOSANDROT
+# Arguments:
+# $top_pos - position of the center of the top hdi bond pad
+# $bot_pos - position of the center of the bottom hdi bond pad
+#
+# Returns:
+# $pos - the center position between the two points
+# $rot - the rotation of the hdi (knowing the gantry's rotational system)
+@CALCPOSANDROT(top_pos,bot_pos)
+  ADD $pos $top_pos $bot_pos
+  MUL $pos $pos {0.5,0.5,0.5}
+
+  SUB $x_input $bot_pos.y $top_pos.y
+  SUB $y_input $top_pos.x $bot_pos.x
+  ATAN2 $rot $x_input $y_input
+
+  RETURN $pos $rot
+
+
+# FIND COORD
+# Arguments:
+# $int_pos - initial position
+# $int_rot - initial rotation
+# $deltas - change in x and y in the int_rot coordinate system {delta_x, delta_y, 0}
+#         - these values can be positive or negative
+#
+# Returns:
+# $fin_pos - final position
+@FINDCOORD(int_pos,int_rot,deltas)
+  COPY $fin_pos $int_pos
+  COPY $delta_x $deltas.x
+  COPY $delta_y $deltas.y
+
+  SIN $sin_theta $int_rot
+  COS $cos_theta $int_rot
+
+  MUL $dx_sin $delta_x $sin_theta
+  MUL $dx_cos $delta_x $cos_theta
+  MUL $dy_sin $delta_y $sin_theta
+  MUL $dy_cos $delta_y $cos_theta
+
+  ADD $fin_pos.x $fin_pos.x $dx_cos
+  SUB $fin_pos.x $fin_pos.x $dy_sin
+
+  ADD $fin_pos.y $fin_pos.y $dx_sin
+  ADD $fin_pos.y $fin_pos.y $dy_cos
+
+  RETURN $fin_pos
+
+
+# CALCPICKUP
+# Arguments:
+#  $target_pos - center of piece to pickup/place
+#  $target_rot - rotation of piece to pickup/place
+#
+# Returns:
+#  $pickup_pos - pickup position
+#  $pickup_pos_z0 - pickup position with z = 0
+@CALCPICKUP(target_pos,target_rot)
+  FLEXREAD $picker_height geometry.PICKER_TOOL.center_offset
+  FLEXREAD $ghco geometry.tool_holder_offset
+  ADD $netoffset $picker_height $ghco
+  SUB $pickup_pos $target_pos $netoffset
+  COPY $pickup_pos_z0 $pickup_pos
+  COPY $pickup_pos_z0.z 0
+  RETURN $pickup_pos $pickup_pos_z0
+
+
+# PICKUPPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $pick_pos - pickup position
+#  $pick_pos_z0 - pickup position with z = 0
+#  $pick_rot - rotation of the what is being picked up
+#
+# No Returns
+@PICKUPPART(pick_pos,pick_pos_z0,pick_rot)
+  MOVESAFE $pick_pos_z0 200
+  ROTATETO $pick_rot 10
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 50
+  ADD $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  WAIT 500
+  SETVAC gantry_head_inner 1
+  WAIT 2000
+  SETVAC "croc_launchROC_top" 0
+  SETVAC "croc_launchROC_bot" 0
+  WAIT 500
+  SUB $pick_pos.z $pick_pos.z 2
+  MOVETO $pick_pos 1
+  MOVETO $pick_pos_z0 25
+  RETURN
+
+
+# PLACEPART
+# takes place directly after CALCPICKUP
+# Arguments:
+#  $place_pos - pickup position
+#  $place_pos_z0 - pickup position with z = 0
+#  $place_rot - rotation of the what is being picked up
+#  $stat - station number
+#
+# No Returns
+@PLACEPART(place_pos,place_pos_z0,place_rot,stat)
+  MOVESAFE $place_pos_z0 200
+  ROTATETO $place_rot 10
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 50
+  ADD $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  WAIT 500
+  SETVAC "croc_chuck_{$stat}_top" 1
+  SETVAC "croc_chuck_{$stat}_bot" 1
+  WAIT 1000
+  SETVAC gantry_head_inner 0
+  WAIT 2000
+  SUB $place_pos.z $place_pos.z 2
+  MOVETO $place_pos 1
+  MOVETO $place_pos_z0 25
+  RETURN
+
+
+# EXPORTVARS
+# Arguments:
+# The goal is to pass all variables necessary for surveillance
+#
+# No returns
+@EXPORTVARS(sensorROC_pos,hdi_pos,hdi_rot,stat_num)
+  SETLOG "CROC_SENSORROC_output_station_{$stat_num}.txt"
+  CLEARLOG
+  PRINT ""
+    #ROC position data
+  XPRINT "sensor.pos_SENSORROC_bond_center: %v" $sensorROC_pos
+    #HDI position data
+  XPRINT "sensor.pos_hdi_final: %v" $hdi_pos
+    #Rotational data
+  XPRINT "sensor.rot_hdi_final: %f" $hdi_rot
+  PRINT""
+  RETURN
+
+
+# SURVEYCALC
+# Arguments:
+#  $near_hdi - Center position for the nearest HDI bond pad
+#  $far_hdi - Center position for the furthest HDI bond pad
+#  $ROC - Center position for the current ROC bond pad
+#
+# Returns:
+#  $delta_x
+#  $delta_y
+@SURVEYCALC(near_hdi,far_hdi,ROC)
+  #Variables
+  COPY $a $near_hdi.x
+  COPY $b $near_hdi.y
+  COPY $c $far_hdi.x
+  COPY $d $far_hdi.y
+  COPY $e $ROC.x
+  COPY $f $ROC.y
+
+  #Slope
+  SUB $b_min_d $b $d
+  SUB $a_min_c $a $c
+  INVERT $a_min_c $a_min_c
+  MUL $slope $b_min_d $a_min_c
+
+  #Calulating numerator for x
+  MUL $slope_2 $slope $slope
+  MUL $top_one $a $slope_2
+  SUB $f_min_b $f $b
+  MUL $top_two $f_min_b $slope
+  ADD $top_oneTwo $top_one $top_two
+  ADD $top $top_oneTwo $e
+
+  #Calculating denominator for x
+  ADD $bottom $slope_2 1
+  INVERT $bottom $bottom
+
+  #Calculating x and y
+  MUL $x $top $bottom
+  INVERT $inv_slope $slope
+  MUL $inv_slope $inv_slope -1
+  SUB $x_min_e $x $e
+  MUL $y_one $inv_slope $x_min_e
+  ADD $y $y_one $f
+
+  #Calculating deltas
+  SUB $a_min_x $a $x
+  SUB $b_min_y $b $y
+  SUB $e_min_x $e $x
+  SUB $f_min_y $f $y
+
+  POW $a_min_x_2 $a_min_x 2
+  POW $b_min_y_2 $b_min_y 2
+  ADD $delta_y_2 $a_min_x_2 $b_min_y_2
+  POW $delta_y $delta_y_2 0.5
+
+  ABS $abs_b_min_y $b_min_y
+  INVERT $abs_b_min_y $abs_b_min_y
+  MUL $sign_b_min_y $b_min_y $abs_b_min_y
+  MUL $delta_y $sign_b_min_y $delta_y
+
+  POW $e_min_x_2 $e_min_x 2
+  POW $f_min_y_2 $f_min_y 2
+  ADD $delta_x_2 $e_min_x_2 $f_min_y_2
+  POW $delta_x $delta_x_2 0.5
+  RETURN $delta_x $delta_y
