@@ -1,0 +1,272 @@
+VERSION v2.1
+######################## SURVEY CROC Assembly Dual ROC #############################
+# Steps:
+# 15. Prompt replacement of Vacuum Tool to its original position
+# 16. Calculate the placement of the HDI top and bottom bond pads
+# 17. Calculate the placement of the Dual CROC top and bottom bond pads
+# 18. Move gantry head to the module and survey for accuracy
+# 19. Calculate the meaningful values
+# 20. End program with vacuums on or off
+
+#Initialize the system
+HOME
+
+#Load Variables needed from Flex Config
+LOADCONFIG
+FLEXREAD $thickness_crocHDI geometry.TFPX_CROC_HDI.thickness
+FLEXREAD $dist_hdi_bondpads geometry.dist_dualHDI_bondpads
+FLEXREAD $dist_dualROC_bondpads geometry.dist_dualROC_bondpads
+
+#Load info from the correct BUILD output text file
+@CHUCKQUESTION GETINTPOPUP $station "Which station are you surveying? (0-3)"
+GOTOIF @CHUCKQUESTION `$station<0`
+GOTOIF @CHUCKQUESTION `$station>3`
+
+LOADCONFIG dual "Logs\CROC_DualROC_output_station_{$station}.txt"
+FLEXREAD $pos_TOPROC_bond_center dual.pos_TOPROC_bond_center
+FLEXREAD $pos_BOTROC_bond_center dual.pos_BOTROC_bond_center
+FLEXREAD $pos_TOPhdi_final dual.pos_TOPhdi_final
+FLEXREAD $pos_BOThdi_final dual.pos_BOThdi_final
+FLEXREAD $rot_TOPhdi_final dual.rot_TOPhdi_final
+FLEXREAD $rot_BOThdi_final dual.rot_BOThdi_final
+
+## Continuing the script ##
+# Step 15. Prompt replacement of Vacuum Tool to its original position
+@STEP_FIFTEEN SETVAC "croc_weight_{$station}" 0
+CHOICEPOPUP $choice "Did you place the Vacuum Tool on its home position?" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_FIFTEEN $choice
+
+
+# Step 16. Calculate the placement of the HDI's top and bottom bond pads
+@STEP_SIXTEEN PASS
+COPY $half_dist_hdi_bondpads {0,$dist_hdi_bondpads,0}
+MUL $half_dist_hdi_bondpads.y $half_dist_hdi_bondpads.y -0.5
+CALL @FINDCOORD $pos_TOPhdi_final $rot_TOPhdi_final $half_dist_hdi_bondpads -> $pos_TOPhdi_top1_final
+SUB $pos_TOPhdi_top1_final.y $pos_TOPhdi_top1_final.y $thickness_crocHDI
+
+CALL @FINDCOORD $pos_BOThdi_final $rot_BOThdi_final $half_dist_hdi_bondpads -> $pos_BOThdi_top1_final
+SUB $pos_BOThdi_top1_final.y $pos_BOThdi_top1_final.y $thickness_crocHDI
+
+
+# Step 17. Calculate the placement of the 2 Dual ROCs top and bottom bond pads
+@STEP_SEVENTEEN PASS
+COPY $half_dist_dR_bondpads {0,$dist_dualROC_bondpads,0}
+MUL $half_dist_dR_bondpads.y $half_dist_dR_bondpads.y -0.5
+CALL @FINDCOORD $pos_TOPROC_bond_center $rot_TOPhdi_final $half_dist_dR_bondpads -> $pos_TOPROC_top1_final
+CALL @FINDCOORD $pos_BOTROC_bond_center $rot_BOThdi_final $half_dist_dR_bondpads -> $pos_BOTROC_top1_final
+
+
+# Step 18. Move gantry head to the module and survey for accuracy
+@STEP_EIGHTEEN PASS
+@HDI_2 CHOICEPOPUP $choice "Ready to survey the HDI?" "Yes" "No, ask again"
+GOTOIFN @HDI_2 $choice
+CALL @FINDBONDCENTERS $pos_TOPhdi_top1_final $dist_hdi_bondpads -> $pos_TOPhdi_top_final $pos_TOPhdi_bot_final
+COPY $pos_BOThdi_top1_final.z $pos_TOPhdi_bot_final.z
+CALL @FINDBONDCENTERS $pos_BOThdi_top1_final $dist_hdi_bondpads -> $pos_BOThdi_top_final $pos_BOThdi_bot_final
+
+@CROC_2 CHOICEPOPUP $choice "Ready to survey the two Dual ROCs?" "Yes" "No, ask again"
+GOTOIFN @CROC_2 $choice
+CALL @FINDBONDCENTERS $pos_TOPROC_top1_final $dist_dualROC_bondpads -> $pos_TOPROC_top_final $pos_TOPROC_bot_final
+CALL @FINDBONDCENTERS $pos_BOTROC_top1_final $dist_dualROC_bondpads -> $pos_BOTROC_top_final $pos_BOTROC_bot_final
+
+
+# Step 19. Calculate the meaningful values
+@STEP_NINETEEN PASS
+CALL @SURVEYCALC $pos_TOPhdi_top_final $pos_TOPhdi_bot_final $pos_TOPROC_top_final -> $TOPROC_d_top_x $TOPROC_d_top_y
+CALL @SURVEYCALC $pos_TOPhdi_bot_final $pos_TOPhdi_top_final $pos_TOPROC_bot_final -> $TOPROC_d_bot_x $TOPROC_d_bot_y
+
+CALL @SURVEYCALC $pos_BOThdi_top_final $pos_BOThdi_bot_final $pos_BOTROC_top_final -> $BOTROC_d_top_x $BOTROC_d_top_y
+CALL @SURVEYCALC $pos_BOThdi_bot_final $pos_BOThdi_top_final $pos_BOTROC_bot_final -> $BOTROC_d_bot_x $BOTROC_d_bot_y
+
+SUB $d_DeltaX_TOP $TOPROC_d_top_x $TOPROC_d_bot_x
+ADD $avg_DeltaY_TOP $TOPROC_d_top_y $TOPROC_d_bot_y
+MUL $avg_DeltaY_TOP $avg_DeltaY_TOP 0.5
+
+SUB $d_DeltaX_BOT $BOTROC_d_top_x $BOTROC_d_bot_x
+ADD $avg_DeltaY_BOT $BOTROC_d_top_y $BOTROC_d_bot_y
+MUL $avg_DeltaY_BOT $avg_DeltaY_BOT 0.5
+
+SETLOG "LOG_SPLIT_Assembly_CROC_DualROC_DataGeneration.txt"
+PRINT "-------------------------"
+PRINT "Meaningful Values: Top"
+PRINT "Delta(delta(X)): %f" $d_DeltaX_TOP
+PRINT "Avg(delta(Y)): %f" $avg_DeltaY_TOP
+
+PRINT ""
+PRINT "-------------------------"
+
+PRINT "Meaningful Values: Bottom"
+PRINT "Delta(delta(X)): %f" $d_DeltaX_BOT
+PRINT "Avg(delta(Y)): %f" $avg_DeltaY_BOT
+
+PRINT ""
+
+
+# Step 20. End program with vacuums on or off
+@STEP_TWENTY PASS
+CHOICEPOPUP $choice "Do you want to leave the vacuums on?" "Yes, Leave them on" "No, Turn them off"
+GOTOIF @STEP_END $choice
+
+SETVAC gantry_head_inner 0
+SETVAC gantry_head_outer 0
+SETVAC croc_launchROC_top 0
+SETVAC croc_launchROC_bot 0
+SETVAC croc_launchHDI 0
+SETVAC "croc_chuck_{$station}_bot" 0
+SETVAC "croc_chuck_{$station}_top" 0
+SETVAC "croc_weight_{$station}" 0
+SETVAC gelpak_release 0
+
+@STEP_END HOME
+
+END
+
+# SURVEYCORNERS
+# Arguments:
+# $x_corner - Approximate position of an object that you would like to know the precise position. Returns with precise position written in this location
+#
+# Returns:
+# $x_corner - Updated position of the corner that is being looked for
+@SURVEYCORNERS(x_corner)
+  MOVESAFE $x_corner 100
+  @SURCORNPOP VIDEO
+  CHOICEPOPUP $choice "Did you correctly align the cursor with the marker?" "Yes" "No"
+  GOTOIFN @SURCORNPOP $choice
+  GETPOS $x_corner
+  RETURN $x_corner
+
+
+# FINDBONDCENTERS
+# Arguments:
+# $top_bond1 - rough position of a corner of the top bond pad
+# $bond_len - length of the bond pads
+#
+# Returns:
+# $top_bond - center of the top-most bond pad
+# $bot_bond - cneter of the bottom-most bond pad
+@FINDBONDCENTERS(top_bond1,bond_len)
+  @FIND_0 CHOICEPOPUP $choice "Ready to find a corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_0 $choice
+  CALL @SURVEYCORNERS $top_bond1 -> $top_bond1
+
+  COPY $top_bond2 $top_bond1
+  @FIND_1 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_1 $choice
+  CALL @SURVEYCORNERS $top_bond2 -> $top_bond2
+
+  COPY $bot_bond1 $top_bond1
+  ADD $bot_bond1.y $bot_bond1.y $bond_len
+  @FIND_2 CHOICEPOPUP $choice "Ready to find a corner of the bottom bond pad?" "Yes" "No"
+  GOTOIFN @FIND_2 $choice
+  CALL @SURVEYCORNERS $bot_bond1 -> $bot_bond1
+
+  COPY $bot_bond2 $bot_bond1
+  @FIND_3 CHOICEPOPUP $choice "Ready to find the opposite corner of the top bond pad?" "Yes" "No"
+  GOTOIFN @FIND_3 $choice
+  CALL @SURVEYCORNERS $bot_bond2 -> $bot_bond2
+
+    # Getting the center of the bond pads
+  ADD $top_bond $top_bond1 $top_bond2
+  MUL $top_bond $top_bond {0.5,0.5,0.5}
+  ADD $bot_bond $bot_bond1 $bot_bond2
+  MUL $bot_bond $bot_bond {0.5,0.5,0.5}
+  RETURN $top_bond $bot_bond
+
+
+
+# FINDCOORD
+# Arguments:
+# $int_pos - initial position
+# $int_rot - initial rotation
+# $deltas - change in x and y in the int_rot coordinate system {delta_x, delta_y, 0}
+#         - these values can be positive or negative
+#
+# Returns:
+# $fin_pos - final position
+@FINDCOORD(int_pos,int_rot,deltas)
+  COPY $fin_pos $int_pos
+  COPY $delta_x $deltas.x
+  COPY $delta_y $deltas.y
+
+  SIN $sin_theta $int_rot
+  COS $cos_theta $int_rot
+
+  MUL $dx_sin $delta_x $sin_theta
+  MUL $dx_cos $delta_x $cos_theta
+  MUL $dy_sin $delta_y $sin_theta
+  MUL $dy_cos $delta_y $cos_theta
+
+  ADD $fin_pos.x $fin_pos.x $dx_cos
+  SUB $fin_pos.x $fin_pos.x $dy_sin
+
+  ADD $fin_pos.y $fin_pos.y $dx_sin
+  ADD $fin_pos.y $fin_pos.y $dy_cos
+
+  RETURN $fin_pos
+
+
+# SURVEYCALC
+# Arguments:
+#  $near_hdi - Center position for the nearest HDI bond pad
+#  $far_hdi - Center position for the furthest HDI bond pad
+#  $ROC - Center position for the current ROC bond pad
+#
+# Returns:
+#  $delta_x
+#  $delta_y
+@SURVEYCALC(near_hdi,far_hdi,ROC)
+  #Variables
+  COPY $a $near_hdi.x
+  COPY $b $near_hdi.y
+  COPY $c $far_hdi.x
+  COPY $d $far_hdi.y
+  COPY $e $ROC.x
+  COPY $f $ROC.y
+
+  #Slope
+  SUB $b_min_d $b $d
+  SUB $a_min_c $a $c
+  INVERT $a_min_c $a_min_c
+  MUL $slope $b_min_d $a_min_c
+
+  #Calulating numerator for x
+  MUL $slope_2 $slope $slope
+  MUL $top_one $a $slope_2
+  SUB $f_min_b $f $b
+  MUL $top_two $f_min_b $slope
+  ADD $top_oneTwo $top_one $top_two
+  ADD $top $top_oneTwo $e
+
+  #Calculating denominator for x
+  ADD $bottom $slope_2 1
+  INVERT $bottom $bottom
+
+  #Calculating x and y
+  MUL $x $top $bottom
+  INVERT $inv_slope $slope
+  MUL $inv_slope $inv_slope -1
+  SUB $x_min_e $x $e
+  MUL $y_one $inv_slope $x_min_e
+  ADD $y $y_one $f
+
+  #Calculating deltas
+  SUB $a_min_x $a $x
+  SUB $b_min_y $b $y
+  SUB $e_min_x $e $x
+  SUB $f_min_y $f $y
+
+  POW $a_min_x_2 $a_min_x 2
+  POW $b_min_y_2 $b_min_y 2
+  ADD $delta_y_2 $a_min_x_2 $b_min_y_2
+  POW $delta_y $delta_y_2 0.5
+
+  ABS $abs_b_min_y $b_min_y
+  INVERT $abs_b_min_y $abs_b_min_y
+  MUL $sign_b_min_y $b_min_y $abs_b_min_y
+  MUL $delta_y $sign_b_min_y $delta_y
+
+  POW $e_min_x_2 $e_min_x 2
+  POW $f_min_y_2 $f_min_y 2
+  ADD $delta_x_2 $e_min_x_2 $f_min_y_2
+  POW $delta_x $delta_x_2 0.5
+  RETURN $delta_x $delta_y
