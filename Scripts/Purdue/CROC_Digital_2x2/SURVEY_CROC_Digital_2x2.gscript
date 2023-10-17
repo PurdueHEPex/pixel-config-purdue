@@ -7,10 +7,9 @@ VERSION v2.1
 # April 2023
 # -----------------------------------------------------
 # Steps:
-# 13. Prompt replacement of Weight Tool to its original position
-# 14. Calculate the placement of the HDI and CROC top and bottom bond pads on each corner
-# 15. Move gantry head to the module and survey for accuracy
-# 16. End program with vacuums on or off
+# 13. Calculate the placement of the HDI and CROC top and bottom bond pads on each corner
+# 14. Move gantry head to the module and survey for accuracy
+# 15. End program with vacuums on or off
 
 #Initialize the system
 HOME
@@ -33,14 +32,14 @@ FLEXREAD $pos_hdi_final quad.pos_hdi_final
 FLEXREAD $rot_hdi_final quad.rot_hdi_final
 
 ## Continuing the script ##
-# Step 13. Prompt replacement of Weight Tool on its original position
-@STEP_THIRTEEN SETVAC croc2x2_weight_0 0
-CHOICEPOPUP $choice "Did you place the Weight Tool on its home position?" "Yes, continue" "No, ask me again"
-GOTOIFN @STEP_THIRTEEN $choice
+# (Step 13. Prompt replacement of Weight Tool on its original position)
+# @STEP_THIRTEEN SETVAC croc2x2_weight_0 0
+# CHOICEPOPUP $choice "Did you place the Weight Tool on its home position?" "Yes, continue" "No, ask me again"
+# GOTOIFN @STEP_THIRTEEN $choice
 
 
-# Step 14. Calculate the placement of the HDI and CROC top and bottom bond pads on each corner
-@STEP_FOURTEEN PASS
+# Step 13. Calculate the placement of the HDI and CROC top and bottom bond pads on each corner
+@STEP_THIRTEEN PASS
   #CROC
 CALL @CALCCORNERS $pos_TR_ROC_final $rot_hdi_final $dim_croc2x2_croc -> $pos_TR_ROC_tr $pos_TR_ROC_br $trash_bl $trash_tl
 CALL @CALCCORNERS $pos_BR_ROC_final $rot_hdi_final $dim_croc2x2_croc -> $pos_BR_ROC_tr $pos_BR_ROC_br $trash_bl $trash_tl
@@ -55,8 +54,8 @@ CALL @CALCCORNERS $pos_BR_hdi_center $rot_hdi_final $dim_croc2x2_hdi_half -> $po
 CALL @CALCCORNERS $pos_BL_hdi_center $rot_hdi_final $dim_croc2x2_hdi_half -> $trash_tr $trash_br $pos_BL_hdi_bl $pos_BL_hdi_tl
 CALL @CALCCORNERS $pos_TL_hdi_center $rot_hdi_final $dim_croc2x2_hdi_half -> $trash_tr $trash_br $pos_TL_hdi_bl $pos_TL_hdi_tl
 
-# Step 15. Move gantry head to the module and survey for accuracy
-@STEP_FIFTEEN PASS
+# Step 14. Move gantry head to the module and survey for accuracy
+@STEP_FOURTEEN PASS
 @ACC_0 CHOICEPOPUP $choice "Ready to survey the Top Right CROC's accuracy?"
 GOTOIFN @ACC_0 $choice
 CALL @QUARTERSURVEILLANCE $pos_TR_hdi_tr $pos_TR_hdi_br $pos_TR_ROC_tr $pos_TR_ROC_br -1 -> $TR_ddx $TR_ady
@@ -94,17 +93,23 @@ PRINT "Top Left"
 PRINT "Delta(delta(X)): %f" $TL_ddx
 PRINT "Avg(delta(Y)): %f" $TL_ady
 
-# Step 16. End program with vacuums on or off
-@STEP_SIXTEEN PASS
-CHOICEPOPUP $choice "Do you want to leave the vacuums on?" "Yes, Leave them on" "No, Turn them off"
-GOTOIF @STEP_END $choice
+HOME
+
+# Step 15. End program with vacuums on or off
+@STEP_FIFTEEN PASS
+CHOICEPOPUP $choice "Has the glue been cured according to the sample previously set aside?" "Yes" "No"
+GOTOIFN @STEP_FIFTEEN $choice
+
+SETVAC croc2x2_weight_0 0
+
+CHOICEPOPUP $choice "Have you moved the weight tool back to its home position?" "Yes" "No"
+GOTOIFN @STEP_FIFTEEN $choice
 
 SETVAC croc2x2_chuck_0_tr 0
 SETVAC croc2x2_chuck_0_br 0
 SETVAC croc2x2_chuck_0_bl 0
 SETVAC croc2x2_chuck_0_tl 0
 
-@STEP_END HOME
 END
 
 # SURVEYCORNERS

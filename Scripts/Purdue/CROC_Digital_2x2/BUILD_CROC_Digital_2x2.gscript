@@ -259,7 +259,7 @@ UNLOADTOOL
 
 
 # Step 9. Check that HDI was moved to the weight tool Launchpad and the adhesive was applied
-@STEP_NINE CHOICEPOPUP $choice "Did you move the HDI to the Weight Tool Launchpad and apply the adhesive?" "Yes, continue" "No, ask me again"
+@STEP_NINE CHOICEPOPUP $choice "Did you move the HDI to the Weight Tool Launchpad and apply the adhesive? (IMPORTANT: Set aside a sample of the adhesive)" "Yes, continue" "No, ask me again"
 GOTOIFN @STEP_NINE $choice
 
 
