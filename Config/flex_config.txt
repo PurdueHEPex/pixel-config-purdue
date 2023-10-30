@@ -28,6 +28,10 @@ vacuum.croc_launchHDI: 9
 vacuum.croc_hdipicker: 10
 vacuum.croc_weight_0: 10
 vacuum.croc2x2_weight_0: 27
+vacuum.croc2x2_weight_1: 27	# UPDATE when new weight tools arrive
+vacuum.croc2x2_weight_2: 27	# UPDATE when new weight tools arrive
+vacuum.croc2x2_weight_3: 27	# UPDATE when new weight tools arrive
+vacuum.croc2x2_weight_4: 27	# UPDATE when new weight tools arrive
 vacuum.croc2x2_launchHDI: 24
 vacuum.croc2x2_launchROC_tr: 14
 vacuum.croc2x2_launchROC_br: 3
@@ -41,7 +45,10 @@ vacuum.croc2x2_chuck_1: 29
 vacuum.croc2x2_chuck_2: 12
 vacuum.croc2x2_chuck_3: 13
 vacuum.croc2x2_chuck_4: 13 #RELABEL
-vacuum.croc2x2_chuck_0: 13 #RELABEL
+vacuum.croc2x2_chuck_0: 11 #RELABEL
+vacuum.croc2x2_chuck_0: 30 #RELABEL
+vacuum.croc2x2_chuck_0: 28 #RELABEL
+vacuum.croc2x2_chuck_0: 31 #RELABEL
 
 vacuum.module_chuck_0_slot_1: 24
 vacuum.module_chuck_0_slot_2: 18
@@ -181,10 +188,12 @@ geometry.TFPX_CROC2X2_QUADROC.fid_br: {9.304,10.820,0}
 geometry.TFPX_CROC2X2_QUADROC.fid_bl: {-9.304,10.820,0}
 geometry.TFPX_CROC2X2_QUADROC.fid_tl: {-9.304,-10.820,0}
 
-geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tr: {18.795,-22.265,0} #REMEASURE
-geometry.TFPX_CROC2X2_QUADSENSORROC.fid_br: {18.795,22.265,0} #REMEASURE
-geometry.TFPX_CROC2X2_QUADSENSORROC.fid_bl: {-18.795,22.265,0} #REMEASURE
-geometry.TFPX_CROC2X2_QUADSENSORROC.fid_tl: {-18.795,-22.265,0} #REMEASURE
+geometry.TFPX_CROC2X2_SENSORROC.fid_tr: {18.622,-21.500,0} 
+geometry.TFPX_CROC2X2_SENSORROC.fid_br: {18.622,21.500,0} 
+geometry.TFPX_CROC2X2_SENSORROC.fid_bl: {-18.622,21.500,0} 
+geometry.TFPX_CROC2X2_SENSORROC.fid_tl: {-18.622,-21.500,0} 
+geometry.TFPX_CROC2x2_SENSORROC.thickness: 0.320
+geometry.TFPX_CROC2x2_SENSOR.thickness: 0.165
 
 geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_tr: {19.025, -20.784,0}
 geometry.TFPX_CROC2X2_QUADTHERMALROC.fid_br: {19.025, 20.784,0}
@@ -309,7 +318,7 @@ siteGeometry.rot_ROC_error: 0
 ### QuadROC Information
 
  # HDI position data
-siteGeometry.pos_croc2x2_hdi_TR: {656.953,523.054,100.077}
+siteGeometry.pos_croc2x2_hdi_TR: {657.513,523.649,100.202}
 
  # QuadROC position data
 siteGeometry.pos_croc2x2LaunchROC_TR: {583.123824,516.408419,99.509999}
@@ -331,20 +340,20 @@ siteGeometry.rot_croc2x2_translation_STAT_0: -0.1213 # Measured on 6/8/2023 by M
  # HDI position data
 
  # Station 1 data
-siteGeometry.croc2x2_v_translation_STAT_1: {-150.750,-150.769,-6.338} #REMEASURE
-siteGeometry.croc2x2_rot_translation_STAT_1: 0 #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_1: {-150.750,-150.769,-6.338} #REMEASURE
+siteGeometry.rot_croc2x2_translation_STAT_1: 0 #REMEASURE
 
  # Station 2 data
-siteGeometry.croc2x2_v_translation_STAT_2: {-75.965,-150.760,-6.283} #REMEASURE
-siteGeometry.croc2x2_rot_translation_STAT_2: 0 #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_2: {-75.965,-150.760,-6.283} #REMEASURE
+siteGeometry.rot_croc2x2_translation_STAT_2: 0 #REMEASURE
 
  # Station 3 data
-siteGeometry.croc2x2_v_translation_STAT_3: {-1.436,-150.760,-6.063} #REMEASURE
-siteGeometry.croc2x2_rot_translation_STAT_3: 0 #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_3: {-1.436,-150.760,-6.063} #REMEASURE
+siteGeometry.rot_croc2x2_translation_STAT_3: 0 #REMEASURE
 
  # Station 4 data
-siteGeometry.croc2x2_v_translation_STAT_4: {74.254,-148.955,-6.079} #REMEASURE
-siteGeometry.croc2x2_rot_translation_STAT_4: 0 #REMEASURE
+siteGeometry.pos_croc2x2_translation_STAT_4: {74.254,-148.955,-6.079} #REMEASURE
+siteGeometry.rot_croc2x2_translation_STAT_4: 0 #REMEASURE
 
 
  # Fine Correction for the Quad ROC Script
