@@ -18,7 +18,8 @@ VERSION v2.1
 #    iii. Is the Pickup Tool ready?
 # 7. Survey the 4 CROCs on LaunchROC. Their initial positions and rotations will be calculated.
 # 8. Pick up the CROCs and place them on Chuck 0 positions computed in Step 4
-# 9. Check that the HDI was moved and the adhesive was applied
+# 9. Check that the adhesive sample was made and set aside
+#    i.   Check that the HDI was moved and the adhesive was applied
 # 10. Prompt placement of Weight Tool bearing HDI onto the ROCs
 # 11. Export the variables
 # 12. End program with vacuums on or off
@@ -258,9 +259,12 @@ MOVENAME tool_rack_pos_2_out 100
 UNLOADTOOL
 
 
-# Step 9. Check that HDI was moved to the weight tool Launchpad and the adhesive was applied
-@STEP_NINE CHOICEPOPUP $choice "Did you move the HDI to the Weight Tool Launchpad and apply the adhesive? (IMPORTANT: Set aside a sample of the adhesive)" "Yes, continue" "No, ask me again"
+# Step 9. Check that the adhesive sample was made and set aside
+@STEP_NINE CHOICEPOPUP $choice "Have you made and set aside an adhesive sample?" "Yes, continue" "No, ask me again"
 GOTOIFN @STEP_NINE $choice
+  # i. Check that HDI was moved to the weight tool Launchpad and the adhesive was applied
+@STEP_NINE_i CHOICEPOPUP $choice "Did you move the HDI to the Weight Tool Launchpad and apply the adhesive? (IMPORTANT: Set aside a sample of the adhesive)" "Yes, continue" "No, ask me again"
+GOTOIFN @STEP_NINE_i $choice
 
 
 # Step 10. Prompt placement of Weight Tool bearing HDI on Chuck 0
@@ -269,7 +273,7 @@ GOTOIFN @STEP_TEN $choice
 
 # Step 11. Export the variables
 @STEP_ELEVEN PASS
-CALL @EXPORTVARS $pos_TR_ROC_final $pos_BR_ROC_final $pos_BL_ROC_final $pos_TL_ROC_final $pos_croc2x2_hdi_final $rot_croc2x2_hdi_final 0
+CALL @EXPORTVARS $pos_TR_ROC_final $pos_BR_ROC_final $pos_BL_ROC_final $pos_TL_ROC_final $pos_croc2x2_hdi_final $rot_croc2x2_hdi_final
 
 # Step 12. End program with vacuums on or off
 @STEP_TWELVE PASS
@@ -464,8 +468,8 @@ END
 #  $stat_num - station number
 #
 # No returns
-@EXPORTVARS(tr_quadROC_pos,br_quadROC_pos,bl_quadROC_pos,tl_quadROC_pos,hdi_pos,hdi_rot,stat_num)
-  SETLOG "CROC2X2_QUADROC_output_station_{$stat_num}.txt"
+@EXPORTVARS(tr_quadROC_pos,br_quadROC_pos,bl_quadROC_pos,tl_quadROC_pos,hdi_pos,hdi_rot)
+  SETLOG "LOG_OUTPUT_CROC_Digital_2x2.txt"
   CLEARLOG
   PRINT ""
     #ROC position data

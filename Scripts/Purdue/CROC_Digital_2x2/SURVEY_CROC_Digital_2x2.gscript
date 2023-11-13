@@ -22,8 +22,8 @@ MUL $dim_croc2x2_hdi_half $dim_croc2x2_hdi {0.5,0.5,0}
 FLEXREAD $dim_croc2x2_croc geometry.TFPX_CROC2X2_QUADROC.fid_br
 FLEXREAD $len_hdi_bondpads geometry.dist_quadHDI_bondpads
 
-#Load info from the correct BUILD output text file
-LOADCONFIG quad Logs\CROC2X2_QUADROC_output_station_0.txt
+#Load info from the correct OUTPUT text file
+LOADCONFIG quad Logs\LOG_OUTPUT_CROC_Digital_2x2.txt
 FLEXREAD $pos_TR_ROC_final quad.pos_TR_ROC_center
 FLEXREAD $pos_BR_ROC_final quad.pos_BR_ROC_center
 FLEXREAD $pos_BL_ROC_final quad.pos_BL_ROC_center
@@ -32,7 +32,7 @@ FLEXREAD $pos_hdi_final quad.pos_hdi_final
 FLEXREAD $rot_hdi_final quad.rot_hdi_final
 
 ## Continuing the script ##
-# (Step 13. Prompt replacement of Weight Tool on its original position)
+# OLD: (Step 13. Prompt replacement of Weight Tool on its original position)
 # @STEP_THIRTEEN SETVAC croc2x2_weight_0 0
 # CHOICEPOPUP $choice "Did you place the Weight Tool on its home position?" "Yes, continue" "No, ask me again"
 # GOTOIFN @STEP_THIRTEEN $choice
